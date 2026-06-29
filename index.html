@@ -1,0 +1,3492 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<title>DEGIRO Portfolio v202606231016</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:        #0b0e14;
+  --bg2:       #111520;
+  --bg3:       #161c2a;
+  --border:    #1e2540;
+  --border2:   #252d45;
+  --text1:     #f0f2f8;
+  --text2:     #8892b0;
+  --text3:     #4a5475;
+  --accent:    #4f80ff;
+  --accent2:   #3a6be0;
+  --green:     #34d399;
+  --green-bg:  #0a2018;
+  --red:       #f87171;
+  --red-bg:    #200a0a;
+  --amber:     #fbbf24;
+  --sidebar-w: 230px;
+}
+
+body {
+  font-family: 'Inter', -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--text1);
+  min-height: 100vh;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 4px; }
+
+/* ── SIDEBAR ── */
+.sidebar {
+  position: fixed; left: 0; top: 0;
+  width: var(--sidebar-w); height: 100vh;
+  background: var(--bg2);
+  border-right: 1px solid var(--border);
+  display: flex; flex-direction: column;
+  z-index: 200;
+}
+.sb-logo {
+  padding: 22px 20px 18px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 11px;
+}
+.sb-logo-icon {
+  width: 34px; height: 34px; border-radius: 9px;
+  background: linear-gradient(135deg, #1e3a8a, #3b5fc0);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.sb-logo-text { line-height: 1.25; }
+.sb-logo-text strong { font-size: 14px; font-weight: 700; color: var(--text1); display: block; }
+.sb-logo-text span { font-size: 10px; color: var(--accent); font-weight: 500; letter-spacing: .08em; text-transform: uppercase; }
+
+.sb-section { padding: 20px 16px 6px; font-size: 10px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: .12em; }
+
+.nav-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 16px; margin: 1px 8px;
+  font-size: 13px; font-weight: 500; color: var(--text2);
+  cursor: pointer; border-radius: 8px;
+  transition: all .15s; border: 1px solid transparent;
+}
+.nav-item:hover { color: var(--text1); background: var(--bg3); }
+.nav-item.active {
+  color: #fff; background: linear-gradient(135deg, #1a3060, #1e3878);
+  border-color: #2a4a90;
+  box-shadow: 0 2px 8px rgba(30,56,120,.4);
+}
+.nav-item svg { flex-shrink: 0; opacity: .6; }
+.nav-item.active svg { opacity: 1; }
+.nav-item .nav-label { flex: 1; }
+.nav-item .nav-badge {
+  font-size: 10px; font-weight: 700;
+  background: var(--accent); color: #fff;
+  padding: 1px 6px; border-radius: 10px;
+}
+
+.sb-bottom {
+  margin-top: auto; padding: 16px;
+  border-top: 1px solid var(--border);
+}
+.sb-upload-btn {
+  display: flex; align-items: center; gap: 9px;
+  width: 100%; padding: 10px 14px;
+  background: var(--bg3); border: 1px solid var(--border2);
+  border-radius: 9px; font-size: 12px; font-weight: 500;
+  color: var(--accent); cursor: pointer;
+  transition: all .15s;
+}
+.sb-upload-btn:hover { background: #1a2550; border-color: #3a5aaa; }
+
+/* ── MAIN ── */
+.main { margin-left: var(--sidebar-w); min-height: 100vh; display: flex; flex-direction: column; }
+
+.topbar {
+  background: var(--bg2); border-bottom: 1px solid var(--border);
+  padding: 0 28px; height: 54px;
+  display: flex; align-items: center; justify-content: space-between;
+  position: sticky; top: 0; z-index: 100;
+}
+.topbar-breadcrumb { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+.topbar-breadcrumb .bc-app { color: var(--text3); font-weight: 500; }
+.topbar-breadcrumb .bc-sep { color: var(--text3); }
+.topbar-breadcrumb .bc-page { color: var(--text1); font-weight: 600; }
+.topbar-right { display: flex; align-items: center; gap: 12px; }
+.topbar-time { font-size: 12px; color: var(--text3); }
+
+.refresh-btn {
+  display: flex; align-items: center; gap: 6px;
+  padding: 6px 14px; background: var(--bg3);
+  border: 1px solid var(--border2); border-radius: 7px;
+  font-size: 12px; font-weight: 600; color: var(--accent);
+  cursor: pointer; transition: all .15s;
+}
+.refresh-btn:hover { background: #1a2550; border-color: var(--accent); }
+
+/* ── UPLOAD SCREEN ── */
+.upload-screen {
+  flex: 1; display: flex; align-items: center; justify-content: center;
+  padding: 40px; background: var(--bg);
+}
+.upload-card {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 20px; padding: 48px 44px;
+  max-width: 660px; width: 100%; text-align: center;
+}
+.upload-card-icon {
+  width: 56px; height: 56px; border-radius: 16px;
+  background: linear-gradient(135deg, #1e3a8a20, #3b5fc030);
+  border: 1px solid #2a4a9040;
+  display: inline-flex; align-items: center; justify-content: center;
+  margin-bottom: 20px;
+}
+.upload-card h2 { font-size: 22px; font-weight: 700; color: var(--text1); margin-bottom: 8px; }
+.upload-card > p { font-size: 14px; color: var(--text2); margin-bottom: 32px; line-height: 1.7; }
+
+.upload-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 28px; }
+.upload-slot {
+  background: var(--bg3); border: 1.5px dashed var(--border2);
+  border-radius: 12px; padding: 22px 12px;
+  cursor: pointer; transition: all .2s; text-align: center;
+}
+.upload-slot:hover, .upload-slot.drag-over { border-color: var(--accent); background: #141c35; }
+.upload-slot.loaded { border-color: var(--green); border-style: solid; background: var(--green-bg); }
+.upload-slot-icon { margin-bottom: 10px; }
+.upload-slot-name { font-size: 12px; font-weight: 600; color: var(--text2); margin-bottom: 4px; }
+.upload-slot-status { font-size: 11px; color: var(--text3); }
+.upload-slot.loaded .upload-slot-status { color: var(--green); }
+
+.start-btn {
+  display: inline-flex; align-items: center; gap: 9px;
+  background: linear-gradient(135deg, #2a4fc0, #4060e0);
+  color: #fff; border: none; border-radius: 10px;
+  padding: 13px 36px; font-size: 14px; font-weight: 700;
+  cursor: pointer; transition: all .2s;
+  box-shadow: 0 4px 20px rgba(64,96,224,.3);
+}
+.start-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 24px rgba(64,96,224,.4); }
+.start-btn:disabled { opacity: .35; cursor: not-allowed; transform: none; box-shadow: none; }
+.privacy-note { margin-top: 10px; font-size: 11px; color: var(--text3); }
+.api-key-row {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--bg3); border: 1px solid var(--border2);
+  border-radius: 10px; padding: 10px 14px; margin-bottom: 20px;
+}
+.api-key-row svg { flex-shrink: 0; }
+.api-key-row input {
+  flex: 1; background: transparent; border: none;
+  font-size: 13px; color: var(--text1); font-family: 'Inter', monospace;
+  outline: none;
+}
+.api-key-row input::placeholder { color: var(--text3); }
+.api-status { font-size: 11px; font-weight: 600; white-space: nowrap; }
+.api-status.ok { color: var(--green); }
+.api-status.err { color: var(--red); }
+
+/* LIVE PRICE BADGE */
+.live-price { color: var(--text1); font-weight: 600; }
+.live-price.loading { color: var(--text3); }
+.live-chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 10px; font-weight: 700; padding: 2px 7px;
+  border-radius: 5px; vertical-align: middle; margin-left: 4px;
+}
+.live-chip.live { background: #082018; color: var(--green); border: 1px solid #0f3020; }
+.live-chip.twelve { background: #0a1a10; color: #4ade80; border: 1px solid #1a3a20; }
+.live-chip.stale { background: #1a1200; color: var(--amber); border: 1px solid #2a1e00; }
+.inleg-saved { font-size: 12px; font-weight: 600; color: var(--green); white-space: nowrap; }
+.live-chip.manual { background: #1a1035; color: #a78bfa; border: 1px solid #2e1f60; }
+.cur-flag {
+  display: inline-block; font-size: 9px; font-weight: 700;
+  padding: 1px 5px; border-radius: 4px; margin-left: 4px;
+  vertical-align: middle; letter-spacing: .06em;
+}
+.cur-flag:not(:empty) { background: #1a1a30; color: var(--text3); border: 1px solid #252540; }
+.card-header-left { display: flex; align-items: center; gap: 10px; }
+.card-section-dot {
+  width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
+}
+.dot-stocks { background: #4f80ff; box-shadow: 0 0 6px #4f80ff88; }
+.dot-etf    { background: #34d399; box-shadow: 0 0 6px #34d39988; }
+
+.card-footer {
+  border-top: 1px solid var(--border);
+  background: #0c1020;
+}
+.totaal-row {
+  display: flex; align-items: center; justify-content: flex-end;
+  gap: 24px; padding: 12px 22px;
+  font-size: 13px; font-weight: 600; color: var(--text2);
+}
+.card-totaal {
+  margin-top: -4px; border-radius: 0 0 14px 14px;
+  overflow: hidden;
+}
+.grand-totaal-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 24px;
+  background: linear-gradient(90deg, #0f1a35, #111a30);
+  border: 1px solid #1e3060; border-radius: 12px;
+  margin-top: 10px;
+  font-size: 14px; font-weight: 700; color: var(--text1);
+}
+
+.ratio-badge {
+  display: inline-block; padding: 2px 8px; border-radius: 6px;
+  font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums;
+}
+.ratio-badge.good    { background: #082018; color: #34d399; border: 1px solid #0f3020; }
+.ratio-badge.mid     { background: #1a1200; color: #fbbf24; border: 1px solid #2a1e00; }
+.ratio-badge.high    { background: #200a0a; color: #f87171; border: 1px solid #3a1010; }
+.ratio-badge.neutral { color: var(--text3); }
+
+.price-cur-label {
+  font-size: 11px; font-weight: 700; color: var(--text3);
+  background: #1a1a2e; border: 1px solid #252545;
+  border-radius: 5px; padding: 3px 7px; white-space: nowrap;
+}
+.price-cell { position: relative; }
+.price-edit-wrap { display: inline-flex; align-items: center; gap: 5px; }
+.price-input {
+  width: 90px; background: #080f20; border: 1px solid var(--accent);
+  border-radius: 6px; padding: 4px 8px; font-size: 12px; color: var(--text1);
+  font-family: inherit; outline: none;
+}
+.price-save-btn, .price-cancel-btn {
+  padding: 3px 8px; border-radius: 5px; font-size: 12px;
+  font-weight: 700; cursor: pointer; border: none; font-family: inherit;
+}
+.price-save-btn { background: var(--green-bg); color: var(--green); border: 1px solid #1a4a30; }
+.price-save-btn:hover { background: #0f3020; }
+.price-cancel-btn { background: var(--red-bg); color: var(--red); border: 1px solid #4a1a1a; }
+.price-cancel-btn:hover { background: #300a0a; }
+.price-edit-btn {
+  opacity: 0; background: none; border: none; color: var(--text3);
+  font-size: 13px; cursor: pointer; padding: 2px 5px; margin-left: 4px;
+  transition: opacity .15s;
+}
+tbody tr:hover .price-edit-btn { opacity: 1; }
+.price-edit-btn:hover { color: var(--accent); }
+tbody tr.clickable-row:hover { background: #141c30; cursor: pointer; }
+tbody tr[title]:hover { background: #141c30; }
+
+/* ── CONTENT ── */
+.content { flex: 1; padding: 28px 32px; display: none; }
+.content.visible { display: block; }
+
+.page-header { margin-bottom: 24px; }
+.page-title { font-size: 24px; font-weight: 700; color: var(--text1); margin-bottom: 3px; }
+.page-sub { font-size: 13px; color: var(--text3); }
+
+/* ── KPI CARDS ── */
+.kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 24px; }
+
+.kpi {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 14px; padding: 20px 22px;
+  position: relative; overflow: hidden;
+  transition: border-color .2s;
+}
+.kpi:hover { border-color: var(--border2); }
+.kpi::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  background: linear-gradient(90deg, transparent, var(--kpi-color, var(--accent)), transparent);
+  opacity: .6;
+}
+.kpi-icon {
+  width: 32px; height: 32px; border-radius: 8px;
+  background: var(--kpi-bg, #1a2540);
+  border: 1px solid var(--kpi-border, #2a3a60);
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 14px;
+}
+.kpi-label {
+  font-size: 11px; font-weight: 600; color: var(--text3);
+  text-transform: uppercase; letter-spacing: .08em; margin-bottom: 8px;
+}
+.kpi-value {
+  font-size: 26px; font-weight: 700; color: var(--text1);
+  letter-spacing: -.02em; line-height: 1; margin-bottom: 8px;
+}
+.kpi-footer { display: flex; align-items: center; gap: 8px; }
+.kpi-sub { font-size: 12px; color: var(--text3); }
+.pill {
+  display: inline-flex; align-items: center; gap: 3px;
+  padding: 2px 8px; border-radius: 20px;
+  font-size: 11px; font-weight: 700;
+}
+.pill.pos { background: var(--green-bg); color: var(--green); border: 1px solid #1a4a30; }
+.pill.neg { background: var(--red-bg); color: var(--red); border: 1px solid #4a1a1a; }
+.pill.neu { background: #111a35; color: var(--accent); border: 1px solid #1e2f60; }
+
+/* ── INLEG BANNER ── */
+.inleg-banner {
+  background: #0f1a35; border: 1px solid #1e3060;
+  border-radius: 12px; padding: 14px 20px;
+  margin-bottom: 20px;
+  display: flex; align-items: center; justify-content: space-between; gap: 20px;
+}
+.inleg-banner p { font-size: 13px; color: #6a8fd4; line-height: 1.4; }
+.inleg-form { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.inleg-form input {
+  background: #080f20; border: 1px solid #2a4070;
+  border-radius: 8px; padding: 8px 12px;
+  font-size: 13px; color: var(--text1); width: 130px;
+  font-family: inherit;
+}
+.inleg-form input:focus { outline: none; border-color: var(--accent); }
+.inleg-form button {
+  background: linear-gradient(135deg, #2040a0, #3055c0);
+  color: #fff; border: none; border-radius: 8px;
+  padding: 8px 16px; font-size: 13px; font-weight: 600;
+  cursor: pointer; font-family: inherit; white-space: nowrap;
+}
+.inleg-form button:hover { background: linear-gradient(135deg, #2a50c0, #3a65d0); }
+
+/* ── CARD ── */
+.card {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 14px; overflow: hidden; margin-bottom: 18px;
+}
+.card-header {
+  padding: 16px 22px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.card-header h3 { font-size: 14px; font-weight: 600; color: var(--text1); }
+.card-header small { font-size: 12px; color: var(--text3); }
+
+/* ── TABLE ── */
+.tbl-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; }
+thead th {
+  padding: 10px 22px;
+  font-size: 10px; font-weight: 700; color: var(--text3);
+  text-transform: uppercase; letter-spacing: .09em;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap; background: var(--bg);
+}
+thead th.num { text-align: right; }
+tbody tr { transition: background .1s; }
+tbody tr:hover { background: #0f1420; }
+tbody td {
+  padding: 13px 22px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text2); white-space: nowrap;
+  font-size: 13px;
+}
+tbody tr:last-child td { border-bottom: none; }
+td.num { text-align: right; font-variant-numeric: tabular-nums; font-size: 13px; }
+td.num strong { color: var(--text1); font-weight: 600; }
+.pos-val { color: var(--green) !important; font-weight: 600; }
+.neg-val { color: var(--red) !important; font-weight: 600; }
+.neutral-val { color: var(--text2); }
+
+.td-product strong { display: block; color: var(--text1); font-size: 13px; font-weight: 500; }
+.td-product span { font-size: 11px; color: var(--text3); }
+
+.badge-koop {
+  display: inline-block; padding: 2px 9px; border-radius: 6px;
+  font-size: 10px; font-weight: 700; letter-spacing: .04em;
+  background: #0e1e40; color: #5a90ff; border: 1px solid #1a3060;
+}
+.badge-verkoop {
+  display: inline-block; padding: 2px 9px; border-radius: 6px;
+  font-size: 10px; font-weight: 700; letter-spacing: .04em;
+  background: #2a1508; color: #f0944a; border: 1px solid #3a2010;
+}
+
+/* ── CHARTS ── */
+.chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 18px; }
+.chart-card {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 14px; padding: 22px;
+}
+.chart-card h3 { font-size: 13px; font-weight: 600; color: var(--text2); margin-bottom: 18px; }
+.chart-wrap { position: relative; width: 100%; }
+
+/* ── LIVE DOT ── */
+.live-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--green); display: inline-block;
+  margin-right: 5px; animation: pulse 2s infinite;
+}
+@keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(.8)} }
+
+/* ── RESPONSIVE ── */
+/* ── MOBILE HAMBURGER MENU ── */
+.mobile-menu-btn {
+  display: none;
+  background: var(--bg3); border: 1px solid var(--border2);
+  border-radius: 8px; padding: 7px 10px; cursor: pointer;
+  color: var(--text1); margin-right: 8px;
+}
+.sidebar-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,.6); z-index: 199;
+}
+.sidebar-overlay.active { display: block; }
+
+/* ── TABLET (≤1024px) ── */
+@media(max-width:1024px) {
+  .kpi-grid { grid-template-columns: 1fr 1fr; }
+  .chart-grid { grid-template-columns: 1fr; }
+  :root { --sidebar-w: 200px; }
+}
+
+/* ── MOBILE & SMALL TABLET (≤960px) ── */
+@media(max-width:960px) {
+  :root { --sidebar-w: 240px; }
+  .sidebar {
+    transform: translateX(-100%);
+    transition: transform .25s ease;
+    z-index: 200;
+  }
+  .sidebar.open { transform: translateX(0); }
+  .main { margin-left: 0; }
+  .mobile-menu-btn { display: flex; align-items: center; justify-content: center; }
+  .topbar { padding: 0 14px; }
+  .topbar-breadcrumb .bc-app { display: none; }
+  .topbar-breadcrumb .bc-sep { display: none; }
+  .content { padding: 16px 12px; }
+  .kpi-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .kpi { padding: 14px 16px; }
+  .kpi-value { font-size: 21px; }
+  .chart-grid { grid-template-columns: 1fr; }
+  .upload-grid { grid-template-columns: 1fr; }
+  .upload-card { padding: 28px 20px; }
+  .inleg-banner { flex-direction: column; align-items: stretch; gap: 12px; }
+  .inleg-form { justify-content: stretch; }
+  .inleg-form input { flex: 1; }
+
+  /* Tabellen: horizontaal scrollbaar met touch-scroll */
+  .tbl-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    position: relative;
+  }
+  table { min-width: 640px; }
+  thead th, tbody td { padding: 10px 12px; font-size: 12px; }
+
+  .page-title { font-size: 20px; }
+  .card-header { padding: 14px 16px; flex-wrap: wrap; gap: 8px; }
+
+  /* Modal volledig scherm op mobiel */
+  #positionModal > div, #salesModal > div {
+    max-width: 95vw !important;
+    width: 95vw !important;
+    padding: 20px !important;
+    max-height: 90vh !important;
+  }
+
+  .wl-add-form { flex-direction: column; align-items: stretch !important; }
+  .wl-add-form > div { min-width: 100% !important; }
+
+  .tabs { overflow-x: auto; -webkit-overflow-scrolling: touch; flex-wrap: nowrap; }
+  .tab { white-space: nowrap; flex-shrink: 0; }
+
+  .nav-item { padding: 12px 16px; font-size: 14px; min-height: 44px; display: flex; align-items: center; }
+  .sb-logo { padding: 18px 16px 14px; }
+  .price-edit-btn { padding: 6px 8px; min-width: 32px; min-height: 32px; }
+  .upload-slot { padding: 18px 10px; min-height: 100px; }
+  button, .tab, .refresh-btn { min-height: 36px; }
+  tbody tr { cursor: pointer; }
+  tbody td { padding: 12px 10px; }
+}
+
+/* ── SMALL PHONE (≤480px) ── */
+@media(max-width:480px) {
+  .kpi-grid { grid-template-columns: 1fr; }
+  .topbar-time { display: none; }
+  .refresh-btn span, .refresh-btn { font-size: 11px; padding: 6px 10px; }
+  #refreshBtn, #debugBtn, #testTwelveBtn { padding: 6px 8px; }
+  .page-sub { font-size: 12px; }
+  table { min-width: 580px; }
+  .upload-card h2 { font-size: 18px; }
+  .upload-card > p { font-size: 13px; }
+}
+</style>
+</head>
+<body>
+
+<!-- FIREBASE LOGIN OVERLAY -->
+<div id="firebaseAuthOverlay" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.95); z-index: 99999; display: flex; align-items: center; justify-content: center; padding: 20px;">
+  <div style="background: #1e293b; border: 1px solid #334155; border-radius: 16px; padding: 40px; max-width: 400px; width: 100%; text-align: center;">
+    <h1 style="font-size: 28px; margin-bottom: 8px; color: #3b82f6;">📊 DEGIRO</h1>
+    <p style="color: #cbd5e1; margin-bottom: 24px;">Portfolio Dashboard Online</p>
+    
+    <div id="firebaseLoginForm">
+      <div id="firebaseError" style="background: rgba(239, 68, 68, 0.1); border: 1px solid #ef4444; color: #ef4444; padding: 12px; border-radius: 8px; margin-bottom: 16px; font-size: 13px; display: none;"></div>
+      <input type="email" id="firebaseEmail" placeholder="Email" value="firataga@gmail.com" style="width: 100%; padding: 12px; margin-bottom: 12px; border: 1px solid #475569; border-radius: 8px; background: #0f172a; color: #f1f5f9; font-size: 14px;">
+      <input type="password" id="firebasePassword" placeholder="Wachtwoord" style="width: 100%; padding: 12px; margin-bottom: 12px; border: 1px solid #475569; border-radius: 8px; background: #0f172a; color: #f1f5f9; font-size: 14px;">
+      <button onclick="firebaseLogin()" style="width: 100%; padding: 12px; margin-bottom: 12px; background: linear-gradient(135deg, #3b82f6, #1e40af); color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">Inloggen</button>
+      <button onclick="showFirebaseRegister()" style="width: 100%; padding: 12px; background: transparent; color: #3b82f6; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; text-decoration: underline;">Geen account? Registreer</button>
+    </div>
+
+    <div id="firebaseRegisterForm" style="display: none;">
+      <div id="firebaseRegError" style="background: rgba(239, 68, 68, 0.1); border: 1px solid #ef4444; color: #ef4444; padding: 12px; border-radius: 8px; margin-bottom: 16px; font-size: 13px; display: none;"></div>
+      <input type="email" id="firebaseRegEmail" placeholder="Email" style="width: 100%; padding: 12px; margin-bottom: 12px; border: 1px solid #475569; border-radius: 8px; background: #0f172a; color: #f1f5f9; font-size: 14px;">
+      <input type="password" id="firebaseRegPassword" placeholder="Wachtwoord (min 6)" style="width: 100%; padding: 12px; margin-bottom: 12px; border: 1px solid #475569; border-radius: 8px; background: #0f172a; color: #f1f5f9; font-size: 14px;">
+      <button onclick="firebaseRegister()" style="width: 100%; padding: 12px; margin-bottom: 12px; background: linear-gradient(135deg, #3b82f6, #1e40af); color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">Account maken</button>
+      <button onclick="showFirebaseLogin()" style="width: 100%; padding: 12px; background: transparent; color: #3b82f6; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; text-decoration: underline;">Al account? Inloggen</button>
+    </div>
+  </div>
+</div>
+
+<!-- SIDEBAR -->
+<div class="sidebar">
+  <div class="sb-logo">
+    <div class="sb-logo-icon">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#7ab0ff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+    </div>
+    <div class="sb-logo-text">
+      <strong>PortfolioPro</strong>
+      <span>DEGIRO</span>
+    </div>
+  </div>
+
+  <div class="sb-section">Navigatie</div>
+
+  <div class="nav-item active" onclick="showPage('dashboard', this)">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+    <span class="nav-label">Dashboard</span>
+  </div>
+  <div class="nav-item" onclick="showPage('analyse', this)">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+    <span class="nav-label">Analyse</span>
+  </div>
+  <div class="nav-item" onclick="showPage('verkopen', this)">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+    <span class="nav-label">Verkochte Aandelen</span>
+  </div>
+  <div class="nav-item" onclick="showPage('transacties', this)">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+    <span class="nav-label">Alle Transacties</span>
+  </div>
+  <div class="nav-item" onclick="showPage('kosten', this)">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    <span class="nav-label">Transactiekosten</span>
+  </div>
+  <div class="nav-item" onclick="showPage('risico', this)">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
+    <span class="nav-label">Risico-analyse</span>
+  </div>
+  <div class="nav-item" onclick="showPage('watchlist', this)">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+    <span class="nav-label">Watchlist</span>
+  </div>
+
+  <div class="sb-bottom">
+    <div class="sb-upload-btn" onclick="resetToUpload()">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+      Nieuwe CSV uploaden
+    </div>
+  </div>
+</div>
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div style="display:flex;align-items:center">
+      <button class="mobile-menu-btn" onclick="toggleSidebar()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+      <div class="topbar-breadcrumb">
+        <span class="bc-app">PortfolioPro</span>
+        <span class="bc-sep">/</span>
+        <span class="bc-page" id="bcPage">Dashboard</span>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <span class="topbar-time" id="lastUpdate"></span>
+      <button class="refresh-btn" id="refreshBtn" onclick="refreshAll()" style="display:none">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+        Verversen
+      </button>
+      <button class="refresh-btn" id="debugBtn" onclick="debugFinnhub()" style="display:none;background:#1a1000;border-color:#3a2a00;color:#fbbf24">
+        🔍 Test API
+      </button>
+      <button class="refresh-btn" id="testTwelveBtn" onclick="testTwelveData()" style="display:none;background:#0a1a10;border-color:#1a3a20;color:#4ade80">
+        🔍 Test Twelve Data
+      </button>
+    </div>
+  </div>
+
+  <!-- UPLOAD SCREEN -->
+  <div class="upload-screen" id="uploadScreen">
+    <div class="upload-card">
+      <div class="upload-card-icon">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#6a9aff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+      </div>
+      <h2>DEGIRO Portfolio Dashboard</h2>
+      <p>Upload je drie DEGIRO exportbestanden om je portfolio te analyseren.<br>Alle data blijft lokaal in je browser — er wordt niets verstuurd.</p>
+      <div class="upload-grid">
+        <div class="upload-slot" id="slot-transactions" onclick="triggerUpload('transactions')" ondragover="dragOver(event,'transactions')" ondragleave="dragLeave('transactions')" ondrop="dropFile(event,'transactions')">
+          <div class="upload-slot-icon">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#4a8fe0" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+          </div>
+          <div class="upload-slot-name">Transactions.csv</div>
+          <div class="upload-slot-status" id="status-transactions">Klik of sleep</div>
+        </div>
+        <div class="upload-slot" id="slot-portfolio" onclick="triggerUpload('portfolio')" ondragover="dragOver(event,'portfolio')" ondragleave="dragLeave('portfolio')" ondrop="dropFile(event,'portfolio')">
+          <div class="upload-slot-icon">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#4a8fe0" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+          </div>
+          <div class="upload-slot-name">Portfolio.csv</div>
+          <div class="upload-slot-status" id="status-portfolio">Klik of sleep</div>
+        </div>
+        <div class="upload-slot" id="slot-account" onclick="triggerUpload('account')" ondragover="dragOver(event,'account')" ondragleave="dragLeave('account')" ondrop="dropFile(event,'account')">
+          <div class="upload-slot-icon">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#4a8fe0" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+          </div>
+          <div class="upload-slot-name">Account.csv</div>
+          <div class="upload-slot-status" id="status-account">Klik of sleep</div>
+        </div>
+      </div>
+      <button class="start-btn" id="startBtn" onclick="buildDashboard()" disabled>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+        Dashboard openen
+      </button>
+      <button class="start-btn" id="cancelUploadBtn" onclick="cancelUpload()" style="display:none; background: var(--bg3); border: 1px solid var(--border2); color: var(--text2); margin-left: 10px; box-shadow: none;">
+        Annuleren
+      </button>
+      <div class="api-key-row">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6a8fd4" stroke-width="2"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
+        <input type="text" id="apiKeyInput" placeholder="Finnhub API key (backup)" value="d8apcr9r01qk20so9a1gd8apcr9r01qk20so9a20">
+        <span class="api-status" id="apiStatus"></span>
+      </div>
+      <div class="api-key-row" style="margin-top:8px">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
+        <input type="text" id="twelveKeyInput" placeholder="Twelve Data API key (primair — betere koersen)" value="4b62bbc35a8d4835a37dcb5777e377f5">
+        <span class="api-status" id="twelveStatus"></span>
+      </div>
+      <p class="privacy-note">🔒 Jouw financiële data verlaat nooit je browser</p>
+    </div>
+  </div>
+
+  <!-- DASHBOARD CONTENT -->
+  <div class="content" id="dashContent">
+
+    <!-- PAGE: DASHBOARD -->
+    <div id="page-dashboard">
+      <div class="page-header">
+        <div class="page-title">Dashboard</div>
+        <div class="page-sub">Overzicht van je huidige portfolio prestaties</div>
+      </div>
+
+      <div class="kpi-grid">
+        <div class="kpi" style="--kpi-color:#4f80ff;--kpi-bg:#0e1a35;--kpi-border:#1e3060">
+          <div class="kpi-icon">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#4f80ff" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+          </div>
+          <div class="kpi-label">Totale Accountwaarde</div>
+          <div class="kpi-value" id="kpiTotalValue">—</div>
+          <div class="kpi-footer"><span class="kpi-sub">Aandelen + Cash</span></div>
+        </div>
+        <div class="kpi" style="--kpi-color:#34d399;--kpi-bg:#081a10;--kpi-border:#0f2a1a">
+          <div class="kpi-icon">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+          </div>
+          <div class="kpi-label">Vrije Ruimte (Cash)</div>
+          <div class="kpi-value" id="kpiCash">—</div>
+          <div class="kpi-footer"><span class="kpi-sub">Beschikbaar saldo</span></div>
+        </div>
+        <div class="kpi" style="--kpi-color:#fbbf24;--kpi-bg:#1a1200;--kpi-border:#2a1e00">
+          <div class="kpi-icon">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+          </div>
+          <div class="kpi-label">Totale Winst / Verlies</div>
+          <div class="kpi-value" id="kpiPnL">—</div>
+          <div class="kpi-footer" id="kpiPnLFooter"></div>
+        </div>
+        <div class="kpi" style="--kpi-color:#a78bfa;--kpi-bg:#140e25;--kpi-border:#22184a">
+          <div class="kpi-icon">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+          </div>
+          <div class="kpi-label">Netto Ingelegd</div>
+          <div class="kpi-value" id="kpiInleg">—</div>
+          <div class="kpi-footer"><span class="kpi-sub">iDEAL stortingen</span></div>
+        </div>
+      </div>
+
+      <div class="inleg-banner">
+        <p>💡 Inleg automatisch berekend via Account.csv. Wil je dit handmatig aanpassen?</p>
+        <div class="inleg-form">
+          <input type="number" id="inlegInput" placeholder="Bedrag" step="100">
+          <button onclick="updateInleg()">Toepassen</button>
+          <span class="inleg-saved" id="inlegSaved"></span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-header-left">
+            <span class="card-section-dot dot-stocks"></span>
+            <h3>Losse Aandelen</h3>
+          </div>
+          <small id="portfolioCount"></small>
+        </div>
+        <div class="tbl-wrap">
+          <table id="tblPortfolio">
+            <thead><tr>
+              <th>Product</th>
+              <th class="num">Aantal</th>
+              <th class="num">GAK (EUR)</th>
+              <th class="num">Koers (Lokaal)</th>
+              <th class="num">Waarde (Lokaal)</th>
+              <th class="num">Waarde (EUR)</th>
+              <th class="num">P/E</th>
+              <th class="num">P/S</th>
+              <th class="num">W/V (EUR)</th>
+              <th class="num">W/V %</th>
+            </tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="card-footer" id="stockTotaalRow"></div>
+      </div>
+
+      <div class="card" style="margin-top:20px">
+        <div class="card-header">
+          <div class="card-header-left">
+            <span class="card-section-dot dot-etf"></span>
+            <h3>ETF's &amp; Trackers</h3>
+          </div>
+          <small id="etfCount"></small>
+        </div>
+        <div class="tbl-wrap">
+          <table id="tblETF">
+            <thead><tr>
+              <th>Product</th>
+              <th class="num">Aantal</th>
+              <th class="num">GAK (EUR)</th>
+              <th class="num">Koers (Lokaal)</th>
+              <th class="num">Waarde (Lokaal)</th>
+              <th class="num">Waarde (EUR)</th>
+              <th class="num">W/V (EUR)</th>
+              <th class="num">W/V %</th>
+            </tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="card-footer" id="etfTotaalRow"></div>
+      </div>
+
+      <div class="card-totaal" id="portfolioTotaalRow"></div>
+    <!-- Position detail modal -->
+    <div id="positionModal" style="display:none;position:fixed;inset:0;background:#000b;z-index:500;align-items:center;justify-content:center">
+      <div style="background:#161b22;border:1px solid #2a3a60;border-radius:16px;padding:28px;max-width:680px;width:92%;max-height:85vh;overflow-y:auto">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+          <div>
+            <h3 id="posModalTitle" style="font-size:17px;font-weight:700;color:#fff"></h3>
+            <span id="posModalISIN" style="font-size:12px;color:#555"></span>
+          </div>
+          <button onclick="document.getElementById('positionModal').style.display='none'" style="background:none;border:none;color:#666;font-size:22px;cursor:pointer;line-height:1">✕</button>
+        </div>
+        <div id="posModalContent"></div>
+      </div>
+    </div>
+
+    </div>
+
+    <!-- PAGE: ANALYSE -->
+    <div id="page-analyse" style="display:none">
+      <div class="page-header">
+        <div class="page-title">Analyse</div>
+        <div class="page-sub">Verdeling en prestaties van je portfolio</div>
+      </div>
+      <div class="chart-grid">
+        <div class="chart-card">
+          <h3>Portefeuille verdeling — waarde (EUR)</h3>
+          <div id="donutChart" style="display:flex;align-items:center;gap:24px;min-height:280px"></div>
+        </div>
+        <div class="chart-card">
+          <h3>Winst / Verlies per positie (EUR)</h3>
+          <div id="barPnl" style="min-height:280px;overflow-y:auto"></div>
+        </div>
+      </div>
+      <div class="chart-card" style="margin-top:16px">
+        <h3>Maandelijkse aankopen (EUR)</h3>
+        <div id="barMonth" style="min-height:200px"></div>
+      </div>
+    </div>
+
+    <!-- PAGE: VERKOPEN -->
+    <div id="page-verkopen" style="display:none">
+      <div class="page-header">
+        <div class="page-title">Verkochte Aandelen</div>
+        <div class="page-sub">Gesloten posities — klik op een rij voor detail</div>
+      </div>
+
+      <!-- KPI totalen -->
+      <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:20px">
+        <div class="kpi" style="--kpi-color:#34d399;--kpi-bg:#081a10;--kpi-border:#0f2a1a">
+          <div class="kpi-label">Totale Winst</div>
+          <div class="kpi-value pos-val" id="salesTotaalWinst">—</div>
+          <div class="kpi-footer"><span class="kpi-sub" id="salesWinstCount"></span></div>
+        </div>
+        <div class="kpi" style="--kpi-color:#f87171;--kpi-bg:#200a0a;--kpi-border:#3a1010">
+          <div class="kpi-label">Totaal Verlies</div>
+          <div class="kpi-value neg-val" id="salesTotaalVerlies">—</div>
+          <div class="kpi-footer"><span class="kpi-sub" id="salesVerliesCount"></span></div>
+        </div>
+        <div class="kpi" style="--kpi-color:#fbbf24;--kpi-bg:#1a1200;--kpi-border:#2a1e00">
+          <div class="kpi-label">Netto Resultaat</div>
+          <div class="kpi-value" id="salesNetto">—</div>
+          <div class="kpi-footer"><span class="kpi-sub" id="salesTotaalCount"></span></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><h3>Verkochte Posities</h3><small id="salesCount"></small></div>
+        <div class="tbl-wrap">
+          <table id="tblSales">
+            <thead><tr>
+              <th>Product</th>
+              <th class="num">Transacties</th>
+              <th class="num">Totaal Aandelen</th>
+              <th class="num">Gem. GAK (EUR)</th>
+              <th class="num">Gem. Verkoopkoers (EUR)</th>
+              <th class="num">Totaal Kostprijs (EUR)</th>
+              <th class="num">Totaal Opbrengst (EUR)</th>
+              <th class="num">Totaal W/V (EUR)</th>
+              <th class="num">W/V %</th>
+            </tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="card-footer" id="salesTotaalRow"></div>
+      </div>
+
+      <!-- Detail modal -->
+      <div id="salesModal" style="display:none;position:fixed;inset:0;background:#000a;z-index:500;align-items:center;justify-content:center">
+        <div style="background:#161b22;border:1px solid #2a3a60;border-radius:16px;padding:28px;max-width:600px;width:90%;max-height:80vh;overflow-y:auto">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+            <h3 id="modalTitle" style="font-size:16px;font-weight:700;color:#fff"></h3>
+            <button onclick="document.getElementById('salesModal').style.display='none'" style="background:none;border:none;color:#666;font-size:20px;cursor:pointer">✕</button>
+          </div>
+          <div id="modalContent"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PAGE: TRANSACTIES -->
+    <div id="page-transacties" style="display:none">
+      <div class="page-header">
+        <div class="page-title">Alle Transacties</div>
+        <div class="page-sub">Volledig transactieoverzicht vanuit DEGIRO</div>
+      </div>
+      <div class="card">
+        <div class="card-header"><h3>Transacties</h3><small id="txCount"></small></div>
+        <div class="tbl-wrap">
+          <table id="tblTransacties">
+            <thead><tr>
+              <th>Datum</th><th>Product</th><th>Type</th>
+              <th class="num">Aantal</th>
+              <th class="num">Koers</th>
+              <th class="num">Waarde EUR</th>
+              <th class="num">Kosten EUR</th>
+            </tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- PAGE: KOSTEN -->
+    <div id="page-kosten" style="display:none">
+      <div class="page-header">
+        <div class="page-title">Transactiekosten</div>
+        <div class="page-sub">Cumulatieve kosten betaald aan DEGIRO</div>
+      </div>
+
+      <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:20px">
+        <div class="kpi" style="--kpi-color:#f87171;--kpi-bg:#200a0a;--kpi-border:#3a1010">
+          <div class="kpi-label">Totale Kosten</div>
+          <div class="kpi-value neg-val" id="kostenTotaal">—</div>
+          <div class="kpi-footer"><span class="kpi-sub" id="kostenTxCount"></span></div>
+        </div>
+        <div class="kpi" style="--kpi-color:#fbbf24;--kpi-bg:#1a1200;--kpi-border:#2a1e00">
+          <div class="kpi-label">Gem. Kosten per Transactie</div>
+          <div class="kpi-value" id="kostenGem">—</div>
+          <div class="kpi-footer"><span class="kpi-sub">over alle jaren</span></div>
+        </div>
+        <div class="kpi" style="--kpi-color:#4f80ff;--kpi-bg:#0e1a35;--kpi-border:#1e3060">
+          <div class="kpi-label">Duurste Jaar</div>
+          <div class="kpi-value" id="kostenDuurstJaar">—</div>
+          <div class="kpi-footer"><span class="kpi-sub" id="kostenDuurstBedrag"></span></div>
+        </div>
+      </div>
+
+      <!-- Cumulatief bar chart per jaar -->
+      <div class="chart-card" style="margin-bottom:20px">
+        <h3>Kosten per jaar (EUR)</h3>
+        <div id="kostenJaarChart" style="min-height:180px;padding:8px 0"></div>
+      </div>
+
+      <!-- Cumulatief per jaar tabel -->
+      <div class="card" style="margin-bottom:20px">
+        <div class="card-header"><h3>Cumulatief per jaar</h3></div>
+        <div class="tbl-wrap">
+          <table id="tblKostenJaar">
+            <thead><tr>
+              <th>Jaar</th>
+              <th class="num">Transacties</th>
+              <th class="num">Kosten (EUR)</th>
+              <th class="num">Gem. per transactie</th>
+              <th class="num">Cumulatief totaal</th>
+            </tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Top duurste transacties -->
+      <div class="card">
+        <div class="card-header"><h3>Top 20 duurste transacties</h3></div>
+        <div class="tbl-wrap">
+          <table id="tblKostenTop">
+            <thead><tr>
+              <th>Datum</th>
+              <th>Product</th>
+              <th class="num">Kosten (EUR)</th>
+              <th class="num">Transactiewaarde (EUR)</th>
+              <th class="num">Kosten %</th>
+            </tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- PAGE: RISICO -->
+        <div id="page-risico" style="display:none">
+      <div class="page-header">
+        <div class="page-title">Risico-analyse</div>
+        <div class="page-sub">Concentratie, valuta-blootstelling en spreiding van je portfolio</div>
+      </div>
+
+      <!-- Concentratie KPI's -->
+      <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:20px">
+        <div class="kpi" id="kpiTop1Card">
+          <div class="kpi-label">Grootste positie</div>
+          <div class="kpi-value" id="riskTop1">—</div>
+          <div class="kpi-footer"><span class="kpi-sub" id="riskTop1Name"></span></div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-label">Top 3 posities</div>
+          <div class="kpi-value" id="riskTop3">—</div>
+          <div class="kpi-footer"><span class="kpi-sub">van portfolio</span></div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-label">Top 5 posities</div>
+          <div class="kpi-value" id="riskTop5">—</div>
+          <div class="kpi-footer"><span class="kpi-sub">van portfolio</span></div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-label">Aantal posities</div>
+          <div class="kpi-value" id="riskCount">—</div>
+          <div class="kpi-footer"><span class="kpi-sub">losse aandelen + ETF's</span></div>
+        </div>
+      </div>
+
+      <!-- Concentratie waarschuwing -->
+      <div id="riskWarningBanner" style="display:none"></div>
+
+      <!-- Concentratie per positie -->
+      <div class="card" style="margin-bottom:20px">
+        <div class="card-header"><h3>Concentratie per positie</h3><small>% van totale portefeuille</small></div>
+        <div id="riskConcentrationChart" style="padding:20px"><div style="color:#555;font-size:12px">Laden na CSV upload...</div></div>
+      </div>
+
+      <div class="chart-grid">
+        <!-- Valuta blootstelling -->
+        <div class="chart-card">
+          <h3>Valuta-blootstelling</h3>
+          <div id="riskCurrencyChart" style="min-height:240px;padding:20px"><div style="color:#555;font-size:12px">Laden...</div></div>
+        </div>
+        <!-- Risico classificatie via P/E -->
+        <div class="chart-card">
+          <h3>Waarderingsrisico (P/E verdeling)</h3>
+          <div id="riskValuationChart" style="min-height:240px;padding:20px"><div style="color:#555;font-size:12px">Laden...</div></div>
+        </div>
+      </div>
+
+      <!-- Sector concentratie -->
+      <div class="card" style="margin-top:16px">
+        <div class="card-header"><h3>Sector-concentratie (indicatief)</h3><small>Op basis van bedrijfsnaam herkenning</small></div>
+        <div id="riskSectorChart" style="padding:20px"><div style="color:#555;font-size:12px">Laden...</div></div>
+      </div>
+    </div>
+
+    <!-- PAGE: WATCHLIST -->
+    <div id="page-watchlist" style="display:none">
+      <div class="page-header">
+        <div class="page-title">Watchlist</div>
+        <div class="page-sub">Volg aandelen die je overweegt — los van je portfolio</div>
+      </div>
+
+      <!-- Toevoegen formulier -->
+      <div class="card" style="margin-bottom:20px">
+        <div class="card-header"><h3>Aandeel toevoegen</h3></div>
+        <div class="wl-add-form" style="padding:18px 22px;display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap">
+          <div style="flex:1;min-width:160px">
+            <label style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:6px">Ticker (bijv. AAPL)</label>
+            <input type="text" id="wlTickerInput" placeholder="AAPL, TSLA, MSFT..." style="width:100%;background:#0f1420;border:1px solid #252d45;border-radius:8px;padding:10px 12px;font-size:13px;color:#fff">
+          </div>
+          <div style="font-size:12px;color:var(--text3);padding-bottom:10px">of</div>
+          <div style="flex:1;min-width:160px">
+            <label style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:6px">ISIN code</label>
+            <input type="text" id="wlIsinInput" placeholder="US0378331005..." style="width:100%;background:#0f1420;border:1px solid #252d45;border-radius:8px;padding:10px 12px;font-size:13px;color:#fff">
+          </div>
+          <div style="min-width:100px">
+            <label style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:6px">Beurs</label>
+            <select id="wlExchangeInput" style="width:100%;background:#0f1420;border:1px solid #252d45;border-radius:8px;padding:10px 12px;font-size:13px;color:#fff">
+              <option value="">US (NASDAQ/NYSE)</option>
+              <option value="XAMS">Amsterdam</option>
+              <option value="XETR">Frankfurt</option>
+              <option value="XLON">Londen</option>
+              <option value="XPAR">Parijs</option>
+            </select>
+          </div>
+          <button onclick="addToWatchlist()" style="background:linear-gradient(135deg,#2a4fc0,#4060e0);color:#fff;border:none;border-radius:8px;padding:10px 22px;font-size:13px;font-weight:700;cursor:pointer;height:38px">
+            + Toevoegen
+          </button>
+        </div>
+        <div id="wlAddStatus" style="padding:0 22px 14px;font-size:12px"></div>
+      </div>
+
+      <!-- Watchlist tabel -->
+      <div class="card">
+        <div class="card-header">
+          <h3>Mijn Watchlist</h3>
+          <div style="display:flex;align-items:center;gap:10px">
+            <small id="wlCount"></small>
+            <button class="refresh-btn" onclick="refreshWatchlist()" style="padding:5px 12px">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+              Ververs
+            </button>
+          </div>
+        </div>
+        <div class="tbl-wrap">
+          <table id="tblWatchlist">
+            <thead><tr>
+              <th>Aandeel</th>
+              <th class="num">Koers</th>
+              <th class="num">Koers (EUR)</th>
+              <th class="num">Verandering</th>
+              <th class="num">P/E</th>
+              <th class="num">P/S</th>
+              <th class="num">Toegevoegd</th>
+              <th class="num">Actie</th>
+            </tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div id="wlEmpty" style="display:none;padding:40px;text-align:center;color:var(--text3);font-size:13px">
+          Nog geen aandelen op je watchlist. Voeg er hierboven een toe!
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+
+<input type="file" id="fileInput" accept=".csv" style="display:none">
+
+<script>
+const fileInputEl = document.getElementById('fileInput');
+let currentSlot = null;
+let files = { transactions: null, portfolio: null, account: null };
+let hasNewUpload = false;
+let data = { transactions: [], portfolio: [], account: [] };
+let charts = {};
+let manualInleg = null;
+let liveprices = {}; // isin -> { price, currency, ticker }
+let isinToTicker = {}; // cache
+let manualPrices = {}; // isin -> priceEur (handmatig ingevoerd)
+
+function loadManualPrices() {
+  const saved = localStorage.getItem('degiro_manual_prices');
+  if (saved) {
+    try {
+      const parsed = JSON.parse(saved);
+      // Migrate old _eur keys to _eur_per_stuk if needed
+      Object.keys(parsed).forEach(k => {
+        if (k.endsWith('_eur') && !k.endsWith('_eur_per_stuk')) {
+          parsed[k.replace('_eur', '_eur_per_stuk')] = parsed[k];
+          delete parsed[k];
+        }
+      });
+      manualPrices = parsed;
+    } catch(e) {}
+  }
+}
+function saveManualPrice(isin, priceEur) {
+  manualPrices[isin] = priceEur;
+  localStorage.setItem('degiro_manual_prices', JSON.stringify(manualPrices));
+}
+function clearManualPrice(isin) {
+  delete manualPrices[isin];
+  localStorage.setItem('degiro_manual_prices', JSON.stringify(manualPrices));
+}
+
+// ── FINNHUB ───────────────────────────────────────────────────────
+function apiKey() { return (document.getElementById('apiKeyInput').value || '').trim(); }
+
+// ── TWELVE DATA ─────────────────────────────────────────────────
+function twelveKey() { return (document.getElementById('twelveKeyInput')?.value || '').trim(); }
+
+// ISIN → Twelve Data ticker (met exchange voor niet-US aandelen)
+const ISIN_TWELVE_MAP = {
+  'US0231351067': { symbol: 'AMZN',      exchange: 'NASDAQ', currency: 'USD' },
+  'US02079K1079': { symbol: 'GOOG',      exchange: 'NASDAQ', currency: 'USD' }, // Alphabet Class C
+  'US02079K3059': { symbol: 'GOOGL',     exchange: 'NASDAQ', currency: 'USD' }, // Alphabet Class A
+  'US0381692070': { symbol: 'APLD',      exchange: 'NASDAQ', currency: 'USD' },
+  'US0404132054': { symbol: 'ANET',      exchange: 'NYSE',   currency: 'USD' },
+  'NL0000334118': { symbol: 'ASM',       exchange: 'XAMS',   currency: 'EUR' },
+  'NL0010273215': { symbol: 'ASML',      exchange: 'XAMS',   currency: 'EUR' },
+  'NL0012866412': { symbol: 'BESI',      exchange: 'XAMS',   currency: 'EUR' },
+  'US21873S1087': { symbol: 'CRWV',      exchange: 'NASDAQ', currency: 'USD' },
+  'US22788C1053': { symbol: 'CRWD',      exchange: 'NASDAQ', currency: 'USD' },
+  'IE00B5BMR087': { symbol: 'CSPX',      exchange: 'XLON',   currency: 'GBP' },
+  'US5128073062': { symbol: 'LRCX',      exchange: 'NASDAQ', currency: 'USD' },
+  'US53263P1057': { symbol: 'LMB',       exchange: 'NASDAQ', currency: 'USD' },
+  'US5738741041': { symbol: 'MRVL',      exchange: 'NASDAQ', currency: 'USD' },
+  'NL0009805522': { symbol: 'NBIS',      exchange: 'NASDAQ', currency: 'USD' },
+  'DE000ENER6Y0': { symbol: 'ENR',       exchange: 'XETR',   currency: 'EUR' },
+  'IE000YYE6WK5': { symbol: 'DFNS',      exchange: 'XAMS',   currency: 'EUR' },
+  'IE00BMC38736': { symbol: 'VVSM',      exchange: 'XAMS',   currency: 'EUR' },
+  'US92537N1081': { symbol: 'VRT',       exchange: 'NYSE',   currency: 'USD' },
+};
+
+async function fetchTwelveDataBatch(isins) {
+  const key = twelveKey();
+  if (!key) return {};
+
+  // Build comma-separated symbol list
+  const symbolList = isins
+    .map(isin => ISIN_TWELVE_MAP[isin])
+    .filter(Boolean)
+    .map(m => ['NASDAQ','NYSE'].includes(m.exchange) ? m.symbol : `${m.symbol}:${m.exchange}`)
+    .join(',');
+
+  if (!symbolList) return {};
+
+  try {
+    // Use simple comma-separated (no encoding) as Twelve Data expects
+    const url = `https://api.twelvedata.com/price?symbol=${symbolList}&apikey=${key}&dp=2`;
+    const res = await fetch(url);
+    const d = await res.json();
+    // If only one symbol returned, wrap in object
+    if (d && d.price !== undefined) {
+      const sym = symbolList;
+      return { [sym]: d };
+    }
+    return d;
+  } catch(e) { return {}; }
+}
+
+async function fetchTwelveMetrics(isin) {
+  const key = twelveKey();
+  if (!key) return { pe: null, ps: null };
+  const m = ISIN_TWELVE_MAP[isin];
+  if (!m) return { pe: null, ps: null };
+  // Skip ETFs
+  if (['IE00B5BMR087','IE000YYE6WK5','IE00BMC38736'].includes(isin)) return { pe: null, ps: null };
+
+  const sym = m.exchange === 'NASDAQ' || m.exchange === 'NYSE' ? m.symbol : `${m.symbol}:${m.exchange}`;
+  try {
+    const res = await fetch(`https://api.twelvedata.com/statistics?symbol=${encodeURIComponent(sym)}&apikey=${key}`);
+    const d = await res.json();
+    if (d && d.valuations_metrics) {
+      const pe = parseFloat(d.valuations_metrics.pe_ratio);
+      const ps = parseFloat(d.valuations_metrics.price_to_sales_ratio);
+      return {
+        pe: pe > 0 && pe < 500 ? pe : null,
+        ps: ps > 0 && ps < 100 ? ps : null
+      };
+    }
+  } catch(e) {}
+  return { pe: null, ps: null };
+}
+
+async function loadTwelveDataPrices() {
+  const key = twelveKey();
+  if (!key) return false;
+
+  const statusEl = document.getElementById('twelveStatus') || document.getElementById('apiStatus');
+  statusEl.textContent = '⟳ Twelve Data laden…';
+  statusEl.className = 'api-status';
+
+  const rows = data.portfolio.filter(r => r['Product'] && !r['Product'].includes('CASH'));
+  const isins = rows.map(r => r['Symbool/ISIN']).filter(Boolean);
+
+  // Build ONE batch symbol string — telt als 1 API credit!
+  const symbolParts = [];
+  const isinToSym = {};
+  isins.forEach(isin => {
+    const m = ISIN_TWELVE_MAP[isin];
+    if (!m) return;
+    const sym = ['NASDAQ','NYSE'].includes(m.exchange) ? m.symbol : `${m.symbol}:${m.exchange}`;
+    symbolParts.push(sym);
+    isinToSym[isin] = sym;
+  });
+
+  if (!symbolParts.length) return false;
+
+  // Één request voor alle prijzen
+  let priceData = {};
+  try {
+    const url = `https://api.twelvedata.com/price?symbol=${symbolParts.join(',')}&apikey=${key}&dp=2`;
+    const res = await fetch(url);
+    priceData = await res.json();
+    // Als er maar 1 symbool is, wrappen
+    if (priceData.price !== undefined) {
+      priceData = { [symbolParts[0]]: priceData };
+    }
+  } catch(e) {
+    statusEl.textContent = '✗ Twelve Data verbindingsfout';
+    statusEl.className = 'api-status err';
+    return false;
+  }
+
+  // Haal wisselkoers op (1 extra request)
+  const fxRes = await fetch('https://open.er-api.com/v6/latest/EUR').catch(() => null);
+  const fxData = fxRes ? await fxRes.json().catch(() => null) : null;
+  const getRate = (cur) => {
+    if (cur === 'EUR') return 1;
+    if (fxData?.rates?.[cur]) return 1 / fxData.rates[cur];
+    return cur === 'USD' ? 0.885 : cur === 'GBP' ? 1.17 : 1;
+  };
+
+  let success = 0;
+  isins.forEach(isin => {
+    const m = ISIN_TWELVE_MAP[isin];
+    if (!m) return;
+    const sym = isinToSym[isin];
+    const entry = priceData[sym] || priceData[m.symbol];
+    if (!entry || entry.status === 'error' || entry.code === 429) return;
+    const price = parseFloat(entry.price);
+    if (!price || isNaN(price) || price <= 0) return;
+    const priceEur = price * getRate(m.currency);
+    liveprices[isin] = { price, priceEur, currency: m.currency, ticker: sym, pe: null, ps: null, source: 'twelvedata' };
+    success++;
+  });
+
+  if (success > 0) {
+    statusEl.textContent = `✓ ${success}/${isins.length} koersen via Twelve Data`;
+    statusEl.className = 'api-status ok';
+    // Haal P/E en P/S op via statistics — ook batch (1 request)
+    fetchTwelveStatsBatch(isins, key, getRate);
+    renderDashboard();
+    const ap = document.getElementById('page-analyse');
+    if (ap && ap.style.display !== 'none') renderAnalyse();
+    return true;
+  }
+  statusEl.textContent = '✗ Twelve Data geen data — controleer API key';
+  statusEl.className = 'api-status err';
+  return false;
+}
+
+async function fetchTwelveStatsBatch(isins, key, getRate) {
+  // Fetch statistics voor niet-ETF aandelen in één batch
+  const etfIsins = ['IE00B5BMR087','IE000YYE6WK5','IE00BMC38736'];
+  const stockIsins = isins.filter(i => !etfIsins.includes(i) && ISIN_TWELVE_MAP[i]);
+  if (!stockIsins.length) return;
+
+  const syms = stockIsins.map(isin => {
+    const m = ISIN_TWELVE_MAP[isin];
+    return ['NASDAQ','NYSE'].includes(m.exchange) ? m.symbol : `${m.symbol}:${m.exchange}`;
+  }).join(',');
+
+  try {
+    const res = await fetch(`https://api.twelvedata.com/statistics?symbol=${syms}&apikey=${key}`);
+    const d = await res.json();
+    // Wrap single result
+    const data2 = d.valuations_metrics ? { [syms]: d } : d;
+    stockIsins.forEach(isin => {
+      const m = ISIN_TWELVE_MAP[isin];
+      const sym = ['NASDAQ','NYSE'].includes(m.exchange) ? m.symbol : `${m.symbol}:${m.exchange}`;
+      const entry = data2[sym] || data2[m.symbol];
+      if (!entry || !entry.valuations_metrics) return;
+      const pe = parseFloat(entry.valuations_metrics.pe_ratio);
+      const ps = parseFloat(entry.valuations_metrics.price_to_sales_ratio);
+      if (liveprices[isin]) {
+        liveprices[isin].pe = pe > 0 && pe < 500 ? pe : null;
+        liveprices[isin].ps = ps > 0 && ps < 100 ? ps : null;
+      }
+    });
+    renderDashboard();
+  } catch(e) {}
+}
+
+// Vaste ISIN→ticker mapping voor jouw portfolio (geen extra API call nodig)
+const ISIN_TICKER_MAP = {
+  'US0231351067': 'AMZN',       // Amazon
+  'US0381692070': 'APLD',       // Applied Digital
+  'US0404132054': 'ANET',       // Arista Networks
+  'NL0000334118': 'ASM.AS',     // ASM International (Amsterdam)
+  'NL0010273215': 'ASML.AS',    // ASML (Amsterdam)
+  'NL0012866412': 'BESI.AS',    // BESI (Amsterdam)
+  'US21873S1087': 'CRWV',       // CoreWeave
+  'US22788C1053': 'CRWD',       // CrowdStrike
+  'IE00B5BMR087': 'IUSA.AS',    // iShares S&P500 UCITS (Amsterdam)
+  'US5128073062': 'LRCX',       // Lam Research
+  'US53263P1057': 'LMB',        // Limbach Holdings
+  'US5738741041': 'MRVL',       // Marvell Technology
+  'NL0009805522': 'NBIS',       // Nebius Group
+  'DE000ENER6Y0': 'ENR.DE',     // Siemens Energy (Frankfurt)
+  'IE000YYE6WK5': 'DFNS.AS',    // VanEck Defense ETF (Amsterdam)
+  'IE00BMC38736': 'VVSM.AS',    // VanEck Semiconductor ETF (Amsterdam)
+  'US92537N1081': 'VRT',        // Vertiv Holdings
+};
+
+async function fetchTicker(isin) {
+  if (isinToTicker[isin]) return isinToTicker[isin];
+  // Gebruik vaste map eerst
+  if (ISIN_TICKER_MAP[isin]) {
+    isinToTicker[isin] = ISIN_TICKER_MAP[isin];
+    return ISIN_TICKER_MAP[isin];
+  }
+  // Fallback: zoek via Finnhub API
+  try {
+    const res = await fetch(`https://finnhub.io/api/v1/stock/profile2?isin=${isin}&token=${apiKey()}`);
+    const d = await res.json();
+    if (d && d.ticker) { isinToTicker[isin] = d.ticker; return d.ticker; }
+  } catch(e) {}
+  return null;
+}
+
+async function fetchQuote(ticker) {
+  try {
+    const res = await fetch(`https://finnhub.io/api/v1/quote?symbol=${ticker}&token=${apiKey()}`);
+    const d = await res.json();
+    if (d && d.c && d.c > 0) return d.c;
+  } catch(e) {}
+  return null;
+}
+
+async function fetchMetrics(ticker) {
+  // ETFs hebben geen P/E of P/S
+  if (!ticker || ticker.includes('ETF') || 
+      ['VVSM.AS','IUSA.AS','DFNS.AS','CSPX.L','DFEN.L'].includes(ticker)) {
+    return { pe: null, ps: null };
+  }
+  try {
+    const res = await fetch(`https://finnhub.io/api/v1/stock/metric?symbol=${ticker}&metric=all&token=${apiKey()}`);
+    const d = await res.json();
+    if (d && d.metric) {
+      // Sanity checks: PE tussen 0-500, PS tussen 0-100
+      const peRaw = d.metric['peNormalizedAnnual'] || d.metric['peTTM'] || null;
+      const psRaw = d.metric['psTTM'] || null;
+      const pe = peRaw && peRaw > 0 && peRaw < 500 ? peRaw : null;
+      const ps = psRaw && psRaw > 0 && psRaw < 100 ? psRaw : null;
+      return { pe, ps };
+    }
+  } catch(e) {}
+  // Fallback: probeer zonder exchange suffix voor Europese aandelen
+  const baseTicker = ticker.split('.')[0];
+  if (baseTicker !== ticker) {
+    try {
+      const res2 = await fetch(`https://finnhub.io/api/v1/stock/metric?symbol=${baseTicker}&metric=all&token=${apiKey()}`);
+      const d2 = await res2.json();
+      if (d2 && d2.metric) {
+        const peRaw = d2.metric['peNormalizedAnnual'] || d2.metric['peTTM'] || null;
+        const psRaw = d2.metric['psTTM'] || null;
+        const pe = peRaw && peRaw > 0 && peRaw < 500 ? peRaw : null;
+        const ps = psRaw && psRaw > 0 && psRaw < 100 ? psRaw : null;
+        return { pe, ps };
+      }
+    } catch(e) {}
+  }
+  return { pe: null, ps: null };
+}
+
+async function fetchFxRate(currency) {
+  if (currency === 'EUR') return 1;
+  // Gebruik open.er-api.com — gratis, geen API key, altijd beschikbaar
+  try {
+    const res = await fetch(`https://open.er-api.com/v6/latest/EUR`);
+    const d = await res.json();
+    if (d && d.rates && d.rates[currency]) {
+      return 1 / d.rates[currency]; // EUR per valuta-eenheid
+    }
+  } catch(e) {}
+  // Fallback: Finnhub
+  try {
+    const res = await fetch(`https://finnhub.io/api/v1/forex/rates?base=EUR&token=${apiKey()}`);
+    const d = await res.json();
+    if (d && d.quote && d.quote[currency]) return 1 / d.quote[currency];
+  } catch(e) {}
+  // Hardcoded fallback
+  const fallbacks = { 'USD': 0.885, 'GBP': 1.17, 'CHF': 1.05 };
+  return fallbacks[currency] || 0.885;
+}
+
+async function loadLivePrices() {
+  if (!apiKey()) return;
+  const statusEl = document.getElementById('apiStatus');
+  statusEl.textContent = '⟳ Koersen ophalen via Finnhub…'; statusEl.className = 'api-status';
+
+  const rows = data.portfolio.filter(r => r['Product'] && !r['Product'].includes('CASH'));
+  const fxCache = {};
+  let success = 0;
+
+  // Parallel fetch all tickers first
+  const tickerMap = {};
+  await Promise.all(rows.map(async r => {
+    const isin = r['Symbool/ISIN'];
+    if (!isin) return;
+    const ticker = await fetchTicker(isin);
+    if (ticker) tickerMap[isin] = ticker;
+  }));
+
+  // Then fetch quotes
+  await Promise.all(rows.map(async r => {
+    const isin = r['Symbool/ISIN'];
+    if (!isin || !tickerMap[isin]) return;
+    const ticker = tickerMap[isin];
+    const localCurrency = (r['Lokale waarde'] || 'EUR').trim();
+
+    // Valuta direct uit Portfolio.csv 'Lokale waarde' kolom
+    const currency = localCurrency || 'EUR';
+
+    const price = await fetchQuote(ticker);
+    if (!price) return;
+
+    if (!fxCache[currency]) fxCache[currency] = await fetchFxRate(currency);
+    const fxRate = fxCache[currency] || 1;
+
+    const metrics = await fetchMetrics(ticker);
+    liveprices[isin] = { price, priceEur: price * fxRate, currency, ticker, pe: metrics.pe, ps: metrics.ps };
+    // Update status progressively
+    statusEl.textContent = `⟳ ${Object.keys(liveprices).length}/${rows.length} geladen…`;
+    success++;
+  }));
+
+  if (success > 0) {
+    const total = rows.length;
+    statusEl.textContent = `✓ ${success}/${total} koersen geladen`;
+    statusEl.className = 'api-status ok';
+    if (success < total) {
+      statusEl.textContent += ` (${total - success} via slotkoers)`;
+    }
+    renderDashboard();
+    const ap = document.getElementById('page-analyse');
+    if (ap && ap.style.display !== 'none') renderAnalyse();
+  } else {
+    statusEl.textContent = '✗ Geen live koersen — slotkoers wordt gebruikt';
+    statusEl.className = 'api-status err';
+  }
+}
+
+// ── CSV ───────────────────────────────────────────────────────────
+function parseCSV(text) {
+  const lines = text.trim().split('\n');
+  if (lines.length < 2) return [];
+  const headers = splitLine(lines[0]).map(h => h.replace(/"/g,'').trim());
+  return lines.slice(1).map(line => {
+    const vals = splitLine(line).map(v => v.replace(/"/g,'').trim());
+    const row = {};
+    headers.forEach((h,i) => row[h] = vals[i] || '');
+    return row;
+  }).filter(r => Object.values(r).some(v => v));
+}
+function splitLine(line) {
+  const res = []; let cur = '', q = false;
+  for (const c of line) {
+    if (c === '"') q = !q;
+    else if (c === ',' && !q) { res.push(cur); cur = ''; }
+    else cur += c;
+  }
+  res.push(cur); return res;
+}
+function pn(v) {
+  if (!v && v !== 0) return 0;
+  return parseFloat(String(v).replace(/\./g,'').replace(',','.')) || 0;
+}
+function eur(n, sign=false) {
+  const s = Math.abs(n).toLocaleString('nl-NL',{minimumFractionDigits:2,maximumFractionDigits:2});
+  return sign ? ((n>=0?'+ ':'- ') + '€' + s) : '€' + s;
+}
+
+// ── UPLOAD ────────────────────────────────────────────────────────
+function triggerUpload(slot) { currentSlot = slot; fileInputEl.click(); }
+fileInputEl.addEventListener('change', () => {
+  if (fileInputEl.files[0]) handleFile(fileInputEl.files[0], currentSlot);
+  fileInputEl.value = '';
+});
+function dragOver(e, s) { e.preventDefault(); document.getElementById('slot-'+s).classList.add('drag-over'); }
+function dragLeave(s) { document.getElementById('slot-'+s).classList.remove('drag-over'); }
+function dropFile(e, s) { e.preventDefault(); dragLeave(s); if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0], s); }
+function handleFile(file, slot) {
+  const r = new FileReader();
+  r.onload = e => {
+    files[slot] = e.target.result;
+    hasNewUpload = true;
+    document.getElementById('slot-'+slot).classList.add('loaded');
+    document.getElementById('status-'+slot).textContent = '✓ ' + file.name;
+    checkReady();
+  };
+  r.readAsText(file, 'UTF-8');
+}
+function checkReady() {
+  document.getElementById('startBtn').disabled = !(files.transactions && files.portfolio && files.account);
+}
+
+// ── BUILD ─────────────────────────────────────────────────────────
+function buildDashboard() {
+  loadSavedInleg();
+  loadManualPrices();
+  data.transactions = parseCSV(files.transactions);
+  data.portfolio    = parseCSV(files.portfolio);
+  data.account      = parseCSV(files.account);
+  data.transactions.forEach(r => {
+    r._aantal  = pn(r['Aantal']);
+    r._koers   = pn(r['Koers']);
+    r._totaal  = pn(r['Totaal EUR']);
+    r._kosten  = pn(r['Transactiekosten en/of kosten van derden EUR']);
+    r._product = (r['Product']||'').trim();
+    r._datum   = r['Datum']||'';
+    r._beurs   = r['Beurs']||'';
+  });
+  document.getElementById('uploadScreen').style.display = 'none';
+  document.getElementById('dashContent').classList.add('visible');
+  document.getElementById('refreshBtn').style.display = 'flex';
+  document.getElementById('debugBtn').style.display = 'flex';
+  document.getElementById('testTwelveBtn').style.display = 'flex';
+  document.getElementById('topbarInfo') && (document.getElementById('topbarInfo').innerHTML = '');
+  renderDashboard(); renderVerkopen(); renderTransacties();
+  tick();
+  if (hasNewUpload) {
+    saveDataToCloud();
+    hasNewUpload = false;
+  }
+  // Twelve Data eerst (betrouwbaarder), Finnhub als backup
+  if (twelveKey()) {
+    loadTwelveDataPrices().then(success => {
+      if (!success && apiKey()) loadLivePrices();
+    });
+  } else if (apiKey()) {
+    loadLivePrices();
+  }
+}
+
+// ── POSITION DETAIL MODAL ──────────────────────────────────────────
+function showPositionDetail(name, isin, currency) {
+  // Match op ISIN (betrouwbaarder dan naam — Portfolio.csv knipt namen af)
+  const txAll = data.transactions.filter(r => {
+    if (isin && r['ISIN']) return r['ISIN'] === isin;
+    return r._product === name;
+  });
+  const toISO = d => { const p=d.split('-'); return p.length===3?`${p[2]}-${p[1]}-${p[0]}`:d; };
+  const buys  = txAll.filter(r => r._aantal > 0).sort((a,b) => toISO(a._datum).localeCompare(toISO(b._datum)));
+  const sells = txAll.filter(r => r._aantal < 0).sort((a,b) => toISO(a._datum).localeCompare(toISO(b._datum)));
+  
+  // Gebruik de volledige naam uit transacties (niet de afgekapte portfolio naam)
+  const fullName = txAll.length > 0 ? txAll[0]._product : name;
+
+  // Calculate FIFO PnL for sells of this position
+  const buyQueue = buys.map(r => ({
+    datum: r._datum,
+    koersEUR: Math.abs(r._totaal) / r._aantal,
+    rest: r._aantal
+  }));
+
+  const sellsWithPnL = sells.map(r => {
+    let teVerkopen = Math.abs(r._aantal);
+    const opbrengst = Math.abs(r._totaal);
+    const vkKoers = teVerkopen > 0 ? opbrengst / teVerkopen : 0;
+    let kostprijs = 0;
+    const tmpQueue = buyQueue.map(b => ({...b}));
+    while (teVerkopen > 0 && tmpQueue.length > 0) {
+      const buy = tmpQueue[0];
+      const gebruik = Math.min(buy.rest, teVerkopen);
+      kostprijs += gebruik * buy.koersEUR;
+      buy.rest -= gebruik;
+      teVerkopen -= gebruik;
+      if (buy.rest < 0.0001) tmpQueue.shift();
+    }
+    const pnl = opbrengst - kostprijs;
+    const pnlPct = kostprijs > 0 ? (pnl/kostprijs*100) : 0;
+    return { ...r, opbrengst, vkKoers, kostprijs, pnl, pnlPct };
+  });
+
+  // Totale winst/verlies op verkopen
+  const totaalVerkopen = sellsWithPnL.reduce((s,r) => s + r.opbrengst, 0);
+  const totaalPnL = sellsWithPnL.reduce((s,r) => s + r.pnl, 0);
+
+  // Summary stats
+  const totaalGeïnvesteerd = buys.reduce((s,r) => s + Math.abs(r._totaal), 0);
+  const totaalAantalGekocht = buys.reduce((s,r) => s + r._aantal, 0);
+  const gemGAK = totaalAantalGekocht > 0 ? totaalGeïnvesteerd / totaalAantalGekocht : 0;
+
+  // Format currency local
+  const fmt = (v) => currency === 'USD'
+    ? '$ ' + Math.abs(v).toLocaleString('nl-NL',{minimumFractionDigits:2,maximumFractionDigits:2})
+    : '€ ' + Math.abs(v).toLocaleString('nl-NL',{minimumFractionDigits:2,maximumFractionDigits:2});
+
+  // Summary cards
+  const summaryHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:20px">
+      <div style="background:#0f1420;border-radius:10px;padding:14px">
+        <div style="font-size:10px;color:#555;text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">Totaal gekocht</div>
+        <div style="font-size:18px;font-weight:700;color:#fff">${totaalAantalGekocht.toLocaleString('nl-NL',{maximumFractionDigits:0})}</div>
+        <div style="font-size:11px;color:#555;margin-top:2px">${buys.length} aankoop${buys.length>1?'en':''}</div>
+      </div>
+      <div style="background:#0f1420;border-radius:10px;padding:14px">
+        <div style="font-size:10px;color:#555;text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">Totaal geïnvesteerd</div>
+        <div style="font-size:18px;font-weight:700;color:#fff">${eur(totaalGeïnvesteerd)}</div>
+        <div style="font-size:11px;color:#555;margin-top:2px">gem. GAK ${eur(gemGAK)}</div>
+      </div>
+      ${sellsWithPnL.length > 0 ? `
+      <div style="background:#0f1420;border-radius:10px;padding:14px">
+        <div style="font-size:10px;color:#555;text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">Winst op verkopen</div>
+        <div style="font-size:18px;font-weight:700;color:${totaalPnL>=0?'#34d399':'#f87171'}">${eur(totaalPnL, true)}</div>
+        <div style="font-size:11px;color:#555;margin-top:2px">${sells.length} verkoop${sells.length>1?'en':''}</div>
+      </div>` : `
+      <div style="background:#0f1420;border-radius:10px;padding:14px">
+        <div style="font-size:10px;color:#555;text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">Valuta</div>
+        <div style="font-size:18px;font-weight:700;color:#fff">${currency}</div>
+        <div style="font-size:11px;color:#555;margin-top:2px">geen verkopen</div>
+      </div>`}
+    </div>`;
+
+  // Aankopen tabel
+  const buyRows = buys.map(r => {
+    const koers = Math.abs(r._totaal) / r._aantal;
+    const kosten = Math.abs(r._kosten);
+    return `<tr>
+      <td style="color:var(--text3);font-size:12px">${r._datum}</td>
+      <td class="num" style="font-size:12px">${r._aantal.toLocaleString('nl-NL',{maximumFractionDigits:0})}</td>
+      <td class="num" style="font-size:12px">${eur(koers)}</td>
+      <td class="num" style="font-size:12px">${eur(Math.abs(r._totaal))}</td>
+      <td class="num neg-val" style="font-size:12px">${kosten > 0 ? eur(kosten) : '—'}</td>
+    </tr>`;
+  }).join('');
+
+  const aankoopHTML = `
+    <h4 style="font-size:13px;color:#8892b0;margin-bottom:10px;display:flex;align-items:center;gap:8px">
+      <span style="width:8px;height:8px;border-radius:50%;background:#4f80ff;display:inline-block"></span>
+      Aankopen (${buys.length})
+    </h4>
+    <div style="background:#0a0f1a;border-radius:10px;overflow:hidden;margin-bottom:20px">
+      <table style="width:100%;border-collapse:collapse;font-size:13px">
+        <thead><tr>
+          <th style="text-align:left;padding:8px 14px;font-size:10px;color:#4a5475;text-transform:uppercase;border-bottom:1px solid #1e2540">Datum</th>
+          <th style="text-align:right;padding:8px 14px;font-size:10px;color:#4a5475;text-transform:uppercase;border-bottom:1px solid #1e2540">Aantal</th>
+          <th style="text-align:right;padding:8px 14px;font-size:10px;color:#4a5475;text-transform:uppercase;border-bottom:1px solid #1e2540">Koers (EUR)</th>
+          <th style="text-align:right;padding:8px 14px;font-size:10px;color:#4a5475;text-transform:uppercase;border-bottom:1px solid #1e2540">Totaal (EUR)</th>
+          <th style="text-align:right;padding:8px 14px;font-size:10px;color:#4a5475;text-transform:uppercase;border-bottom:1px solid #1e2540">Kosten</th>
+        </tr></thead>
+        <tbody>${buyRows}</tbody>
+      </table>
+    </div>`;
+
+  // Verkopen tabel (alleen als er verkopen zijn)
+  let verkoopHTML = '';
+  if (sellsWithPnL.length > 0) {
+    const sellRows = sellsWithPnL.map(r => {
+      const pos = r.pnl >= 0;
+      return `<tr>
+        <td style="color:var(--text3);font-size:12px">${r._datum}</td>
+        <td class="num" style="font-size:12px">${Math.abs(r._aantal).toLocaleString('nl-NL',{maximumFractionDigits:0})}</td>
+        <td class="num" style="font-size:12px">${eur(r.vkKoers)}</td>
+        <td class="num" style="font-size:12px">${eur(r.opbrengst)}</td>
+        <td class="num" style="font-size:12px">${eur(r.kostprijs)}</td>
+        <td class="num ${pos?'pos-val':'neg-val'}" style="font-size:12px;font-weight:700">${eur(r.pnl, true)}</td>
+        <td class="num ${pos?'pos-val':'neg-val'}" style="font-size:12px">${pos?'▲':'▼'} ${Math.abs(r.pnlPct).toFixed(2)}%</td>
+      </tr>`;
+    }).join('');
+
+    const nettoPos = totaalPnL >= 0;
+    verkoopHTML = `
+      <h4 style="font-size:13px;color:#8892b0;margin-bottom:10px;display:flex;align-items:center;gap:8px">
+        <span style="width:8px;height:8px;border-radius:50%;background:${nettoPos?'#34d399':'#f87171'};display:inline-block"></span>
+        Verkopen (${sells.length}) — netto ${eur(totaalPnL, true)}
+      </h4>
+      <div style="background:#0a0f1a;border-radius:10px;overflow:hidden">
+        <table style="width:100%;border-collapse:collapse;font-size:13px">
+          <thead><tr>
+            <th style="text-align:left;padding:8px 14px;font-size:10px;color:#4a5475;text-transform:uppercase;border-bottom:1px solid #1e2540">Datum</th>
+            <th style="text-align:right;padding:8px 14px;font-size:10px;color:#4a5475;text-transform:uppercase;border-bottom:1px solid #1e2540">Aantal</th>
+            <th style="text-align:right;padding:8px 14px;font-size:10px;color:#4a5475;text-transform:uppercase;border-bottom:1px solid #1e2540">Verkoopkoers</th>
+            <th style="text-align:right;padding:8px 14px;font-size:10px;color:#4a5475;text-transform:uppercase;border-bottom:1px solid #1e2540">Opbrengst</th>
+            <th style="text-align:right;padding:8px 14px;font-size:10px;color:#4a5475;text-transform:uppercase;border-bottom:1px solid #1e2540">Kostprijs</th>
+            <th style="text-align:right;padding:8px 14px;font-size:10px;color:#4a5475;text-transform:uppercase;border-bottom:1px solid #1e2540">W/V (EUR)</th>
+            <th style="text-align:right;padding:8px 14px;font-size:10px;color:#4a5475;text-transform:uppercase;border-bottom:1px solid #1e2540">W/V %</th>
+          </tr></thead>
+          <tbody>${sellRows}</tbody>
+        </table>
+      </div>`;
+  }
+
+  document.getElementById('posModalTitle').textContent = fullName || name;
+  document.getElementById('posModalISIN').textContent = isin;
+  document.getElementById('posModalContent').innerHTML = summaryHTML + aankoopHTML + verkoopHTML;
+
+  const modal = document.getElementById('positionModal');
+  modal.style.display = 'flex';
+  modal.onclick = e => { if (e.target === modal) modal.style.display = 'none'; };
+}
+
+// ── DASHBOARD ─────────────────────────────────────────────────────
+function renderDashboard() {
+  // Inleg
+  const deposits = data.account.filter(r => (r['Omschrijving']||'').includes('iDEAL Deposit'));
+  let totalInleg = 0;
+  deposits.forEach(r => {
+    const keys = Object.keys(r);
+    for (let i = 0; i < keys.length; i++) {
+      if (r[keys[i]] === 'EUR' && keys[i+1]) {
+        const n = pn(r[keys[i+1]]);
+        if (n > 0) { totalInleg += n; break; }
+      }
+    }
+  });
+  if (manualInleg !== null) totalInleg = manualInleg;
+  document.getElementById('inlegInput').value = Math.round(totalInleg);
+
+  // Portfolio waarde — gebruik live of handmatige koers indien beschikbaar
+  let stockEUR = 0, cashEUR = 0;
+  data.portfolio.forEach(r => {
+    const isin = r['Symbool/ISIN']||'';
+    const aantal = pn(r['Aantal']);
+    if ((r['Product']||'').includes('CASH')) {
+      cashEUR += pn(r['Waarde in EUR']);
+    } else if (r['Product']) {
+      if (liveprices[isin] && liveprices[isin].priceEur) {
+        stockEUR += liveprices[isin].priceEur * aantal;
+      } else if (manualPrices[isin]) {
+        stockEUR += manualPrices[isin] * aantal;
+      } else {
+        stockEUR += pn(r['Waarde in EUR']);
+      }
+    }
+  });
+  const totalAccount = stockEUR + cashEUR;
+  // PnL = actuele waarde minus eigen inleg (betrouwbaarder dan GAK optelling)
+  const pnl = totalAccount - totalInleg;
+  const pnlPct = totalInleg > 0 ? (pnl / totalInleg * 100) : 0;
+  const pos = pnl >= 0;
+
+  document.getElementById('kpiTotalValue').textContent = eur(totalAccount);
+  document.getElementById('kpiCash').textContent = eur(cashEUR);
+  document.getElementById('kpiInleg').textContent = eur(totalInleg);
+
+  const pnlEl = document.getElementById('kpiPnL');
+  pnlEl.textContent = eur(Math.abs(pnl));
+  pnlEl.style.color = pos ? 'var(--green)' : 'var(--red)';
+  document.getElementById('kpiPnLFooter').innerHTML =
+    `<span class="pill ${pos?'pos':'neg'}">${pos?'▲':'▼'} ${Math.abs(pnlPct).toFixed(2)}%</span><span class="kpi-sub" style="margin-left:6px">t.o.v. inleg</span>`;
+
+  // Table — split ETFs and stocks
+  const gak = calcGAK();
+  function isETF(r) {
+    const name = (r['Product']||'').toUpperCase();
+    const isin = (r['Symbool/ISIN']||'').toUpperCase();
+    return name.includes('ETF') || name.includes('UCITS') || isin.startsWith('IE');
+  }
+  const allRows = data.portfolio.filter(r => r['Product'] && !r['Product'].includes('CASH'))
+    .sort((a,b) => pn(b['Waarde in EUR']) - pn(a['Waarde in EUR']));
+  const stockRows = allRows.filter(r => !isETF(r));
+  const etfRows   = allRows.filter(r =>  isETF(r));
+
+  const tbody = document.querySelector('#tblPortfolio tbody');
+  tbody.innerHTML = '';
+  const portfolioRows = stockRows;
+  portfolioRows.forEach(r => {
+    const name = (r['Product']||'').trim();
+    const isin = r['Symbool/ISIN']||'';
+    const aantal = pn(r['Aantal']);
+    const g = getGAK(gak, name, isin);
+    const gakP = g.aantal > 0 ? g.totaalBetaald/g.aantal : 0;
+
+    // Valuta uit Portfolio.csv (kolom na slotkoers)
+    const keys = Object.keys(r);
+    // Portfolio.csv: valuta in naamloze kolom '' na Lokale waarde
+    const localCurrency = (r['Lokale waarde'] || 'EUR').trim();
+    const isUSD = localCurrency === 'USD';
+    const localSlotkoers = pn(r['Slotkoers']);
+    const lokaleWaardeCSV = pn(r['']);
+
+    // Price priority: 1) live Finnhub  2) handmatig opgeslagen  3) Portfolio.csv slotkoers
+    // Live price from Finnhub comes in local currency, priceEur is EUR converted
+    let koersLokaal, waardeEUR, koersEUR, priceSource = 'slotkoers';
+
+    if (liveprices[isin] && liveprices[isin].priceEur) {
+      koersEUR   = liveprices[isin].priceEur;
+      koersLokaal = liveprices[isin].price; // original local currency price
+      waardeEUR  = koersEUR * aantal;
+      priceSource = 'live';
+    } else if (manualPrices[isin]) {
+      // Manual: koers per stuk in lokale valuta, EUR per stuk apart opgeslagen
+      koersLokaal = manualPrices[isin];
+      // Als geen EUR conversie opgeslagen: gebruik CSV Waarde in EUR als fallback
+      const eurPerStuk = manualPrices[isin + '_eur_per_stuk'];
+      if (eurPerStuk) {
+        koersEUR  = eurPerStuk;
+        waardeEUR = eurPerStuk * aantal;
+      } else {
+        // Nog geen wisselkoers opgeslagen — gebruik CSV waarde
+        waardeEUR = pn(r['Waarde in EUR']);
+        koersEUR  = aantal > 0 ? waardeEUR / aantal : 0;
+      }
+      priceSource = 'manual';
+    } else {
+      // Slotkoers uit Portfolio.csv
+      koersLokaal = localSlotkoers;
+      waardeEUR   = pn(r['Waarde in EUR']);
+      koersEUR    = aantal > 0 ? waardeEUR / aantal : 0;
+    }
+
+    const waardeLokal = koersLokaal * aantal;
+    const kostprijs = gakP * aantal;
+    const heeftGAK = gakP > 0;
+    const wv = heeftGAK ? (waardeEUR - kostprijs) : 0;
+    const wvPct = (heeftGAK && kostprijs > 0) ? (wv/kostprijs*100) : 0;
+    const p = wv >= 0;
+
+    const liveSource = liveprices[isin]?.source === 'twelvedata' ? 'TWELVE DATA' : 'LIVE';
+    const liveTag = priceSource === 'live'
+      ? `<span class="live-chip live">● ${liveSource}</span>`
+      : priceSource === 'manual'
+        ? `<span class="live-chip manual">✎ HANDMATIG</span>`
+        : `<span class="live-chip stale">SLOTKOERS</span>`;
+
+    // Format local currency
+    function fmtLocal(val, cur) {
+      const s = Math.abs(val).toLocaleString('nl-NL',{minimumFractionDigits:2,maximumFractionDigits:2});
+      return cur === 'USD' ? '$ ' + s : '€ ' + s;
+    }
+
+    // Editable price cell — input in local currency
+    const savedLocal = manualPrices[isin] || koersLokaal;
+    const priceCell = priceSource === 'live'
+      ? `<td class="num">${fmtLocal(koersLokaal, localCurrency)}${liveTag}</td>`
+      : `<td class="num price-cell">
+           <span class="price-display" id="pd-${isin}">${fmtLocal(koersLokaal, localCurrency)}${liveTag}</span>
+           <span class="price-edit-wrap" id="pe-${isin}" style="display:none">
+             <span class="price-cur-label">${localCurrency}</span>
+             <input class="price-input" id="pi-${isin}" type="number" step="0.01" value="${savedLocal.toFixed(2)}" placeholder="koers ${localCurrency}" onclick="event.stopPropagation()">
+             <button class="price-save-btn" onclick="event.stopPropagation();applyManualPrice('${isin}','${localCurrency}',${aantal})">✓</button>
+             <button class="price-cancel-btn" onclick="event.stopPropagation();cancelPriceEdit('${isin}')">✕</button>
+           </span>
+           <button class="price-edit-btn" id="peb-${isin}" onclick="event.stopPropagation();startPriceEdit('${isin}')" title="Koers aanpassen">✎</button>
+         </td>`;
+
+    const waardeLokalDisplay = priceSource === 'live' ? koersLokaal * aantal : (priceSource === 'manual' ? manualPrices[isin] * aantal : lokaleWaardeCSV);
+
+    const live = liveprices[isin];
+    const peVal = live?.pe  != null ? live.pe.toFixed(1)  : '—';
+    const psVal = live?.ps  != null ? live.ps.toFixed(1)  : '—';
+
+    function ratioBadge(val, thresholds, label) {
+      if (val === '—') return `<span class="ratio-badge neutral" title="${label} niet beschikbaar via Finnhub">—</span>`;
+      const n = parseFloat(val);
+      if (n < thresholds[0]) return `<span class="ratio-badge good" title="${label}: ${val}">${val}</span>`;
+      if (n < thresholds[1]) return `<span class="ratio-badge mid" title="${label}: ${val}">${val}</span>`;
+      return `<span class="ratio-badge high" title="${label}: ${val}">${val}</span>`;
+    }
+
+    const tr = document.createElement('tr');
+    tr.style.cursor = 'pointer';
+    tr.title = 'Klik voor aankoop- en verkoophistorie';
+    tr.onclick = () => showPositionDetail(name, isin, localCurrency);
+    tr.innerHTML = `
+      <td class="td-product"><strong>${name}</strong><span>${isin} <span class="cur-flag">${localCurrency}</span></span></td>
+      <td class="num">${aantal.toLocaleString('nl-NL',{maximumFractionDigits:0})}</td>
+      <td class="num">${gakP > 0 ? eur(gakP) : '<span style="color:var(--text3)">—</span>'}</td>
+      ${priceCell}
+      <td class="num">${fmtLocal(waardeLokalDisplay, localCurrency)}</td>
+      <td class="num"><strong>${eur(waardeEUR)}</strong></td>
+      <td class="num">${ratioBadge(peVal, [15, 30], 'P/E')}</td>
+      <td class="num">${ratioBadge(psVal, [3, 10], 'P/S')}</td>
+      <td class="num ${heeftGAK?(p?'pos-val':'neg-val'):''}">${heeftGAK ? eur(wv,true) : '<span style="color:var(--text3)">—</span>'}</td>
+      <td class="num ${heeftGAK?(p?'pos-val':'neg-val'):''}">${heeftGAK ? ((p?'▲':'▼')+' '+Math.abs(wvPct).toFixed(2)+'%') : '<span style="color:var(--text3)">—</span>'}</td>`;
+    tbody.appendChild(tr);
+  });
+  document.getElementById('portfolioCount').textContent = stockRows.length + ' posities';
+
+  // Stock totaal row
+  let stockTotaalEURval = 0, stockWvEUR = 0;
+  stockRows.forEach(r => {
+    const isinS = r['Symbool/ISIN']||'';
+    const aantS = pn(r['Aantal']);
+    const gS = getGAK(gak, (r['Product']||'').trim(), r['Symbool/ISIN']||'');
+    const gakPS = gS.aantal > 0 ? gS.totaalBetaald/gS.aantal : 0;
+    let wEUR;
+    if (liveprices[isinS]?.priceEur) wEUR = liveprices[isinS].priceEur * aantS;
+    else if (manualPrices[isinS]) wEUR = manualPrices[isinS + '_eur'] || pn(r['Waarde in EUR']);
+    else wEUR = pn(r['Waarde in EUR']);
+    stockTotaalEURval += wEUR;
+    if (gakPS > 0) stockWvEUR += wEUR - (gakPS * aantS);
+  });
+  const stockP = stockWvEUR >= 0;
+  document.getElementById('stockTotaalRow').innerHTML = `
+    <div class="totaal-row">
+      <span>Totaal Aandelen</span>
+      <span><strong>${eur(stockTotaalEURval)}</strong></span>
+      <span class="${stockP?'pos-val':'neg-val'}">${eur(stockWvEUR, true)}</span>
+    </div>`;
+
+  // ── ETF table ──
+  const tbodyETF = document.querySelector('#tblETF tbody');
+  tbodyETF.innerHTML = '';
+  let etfTotaalEUR = 0, etfWvEUR = 0;
+
+  etfRows.forEach(r => {
+    const name = (r['Product']||'').trim();
+    const isin = r['Symbool/ISIN']||'';
+    const aantal = pn(r['Aantal']);
+    const g = getGAK(gak, name, isin);
+    const gakP = g.aantal > 0 ? g.totaalBetaald/g.aantal : 0;
+
+    // Portfolio.csv: valuta in naamloze kolom ''
+    const localCurrency2 = (r['Lokale waarde'] || 'EUR').trim();
+    const localSlotkoers2 = pn(r['Slotkoers']);
+    const lokaleWaardeCSV2 = pn(r['']);
+
+    let koersLokaal2, waardeEUR2, koersEUR2, priceSource2 = 'slotkoers';
+    if (liveprices[isin] && liveprices[isin].priceEur) {
+      koersEUR2    = liveprices[isin].priceEur;
+      koersLokaal2 = liveprices[isin].price;
+      waardeEUR2   = koersEUR2 * aantal;
+      priceSource2 = 'live';
+    } else if (manualPrices[isin]) {
+      koersLokaal2 = manualPrices[isin];
+      const eurPerStuk2 = manualPrices[isin + '_eur_per_stuk'];
+      if (eurPerStuk2) {
+        koersEUR2  = eurPerStuk2;
+        waardeEUR2 = eurPerStuk2 * aantal;
+      } else {
+        waardeEUR2 = pn(r['Waarde in EUR']);
+        koersEUR2  = aantal > 0 ? waardeEUR2 / aantal : 0;
+      }
+      priceSource2 = 'manual';
+    } else {
+      koersLokaal2 = localSlotkoers2;
+      waardeEUR2   = pn(r['Waarde in EUR']);
+      koersEUR2    = aantal > 0 ? waardeEUR2 / aantal : 0;
+    }
+
+    const kostprijs2 = gakP * aantal;  // gakP nu via ISIN = correct
+    const heeftGAK2 = gakP > 0;
+    const wv2 = heeftGAK2 ? (waardeEUR2 - kostprijs2) : null;
+    const wvPct2 = (heeftGAK2 && kostprijs2 > 0) ? (wv2/kostprijs2*100) : null;
+    const p2 = wv2 !== null ? wv2 >= 0 : true;
+    etfTotaalEUR += waardeEUR2;
+    if (wv2 !== null) etfWvEUR += wv2;
+
+    const liveTag2 = priceSource2 === 'live'
+      ? `<span class="live-chip live">● LIVE</span>`
+      : priceSource2 === 'manual'
+        ? `<span class="live-chip manual">✎ HANDMATIG</span>`
+        : `<span class="live-chip stale">SLOTKOERS</span>`;
+
+    function fmtLocal2(val, cur) {
+      const s = Math.abs(val).toLocaleString('nl-NL',{minimumFractionDigits:2,maximumFractionDigits:2});
+      return cur === 'USD' ? '$ ' + s : '€ ' + s;
+    }
+
+    const savedLocal2 = manualPrices[isin] || koersLokaal2;
+    const priceCell2 = priceSource2 === 'live'
+      ? `<td class="num">${fmtLocal2(koersLokaal2, localCurrency2)}${liveTag2}</td>`
+      : `<td class="num price-cell">
+           <span class="price-display" id="pd-${isin}">${fmtLocal2(koersLokaal2, localCurrency2)}${liveTag2}</span>
+           <span class="price-edit-wrap" id="pe-${isin}" style="display:none">
+             <span class="price-cur-label">${localCurrency2}</span>
+             <input class="price-input" id="pi-${isin}" type="number" step="0.01" value="${savedLocal2.toFixed(2)}" placeholder="koers ${localCurrency2}" onclick="event.stopPropagation()">
+             <button class="price-save-btn" onclick="event.stopPropagation();applyManualPrice('${isin}','${localCurrency2}',${aantal})">✓</button>
+             <button class="price-cancel-btn" onclick="event.stopPropagation();cancelPriceEdit('${isin}')">✕</button>
+           </span>
+           <button class="price-edit-btn" id="peb-${isin}" onclick="event.stopPropagation();startPriceEdit('${isin}')" title="Koers aanpassen">✎</button>
+         </td>`;
+
+    const waardeLokalDisplay2 = priceSource2 === 'live' ? koersLokaal2 * aantal : (priceSource2 === 'manual' ? manualPrices[isin] * aantal : lokaleWaardeCSV2);
+
+    const tr2 = document.createElement('tr');
+    tr2.style.cursor = 'pointer';
+    tr2.title = 'Klik voor aankoop- en verkoophistorie';
+    tr2.onclick = () => showPositionDetail(name, isin, localCurrency2);
+    tr2.innerHTML = `
+      <td class="td-product"><strong>${name}</strong><span>${isin} <span class="cur-flag">${localCurrency2}</span></span></td>
+      <td class="num">${aantal.toLocaleString('nl-NL',{maximumFractionDigits:0})}</td>
+      <td class="num">${gakP > 0 ? eur(gakP) : '<span style="color:var(--text3)">—</span>'}</td>
+      ${priceCell2}
+      <td class="num">${fmtLocal2(waardeLokalDisplay2, localCurrency2)}</td>
+      <td class="num"><strong>${eur(waardeEUR2)}</strong></td>
+      <td class="num ${wv2!==null?(p2?'pos-val':'neg-val'):''}">${wv2!==null ? eur(wv2,true) : '<span style="color:var(--text3)">—</span>'}</td>
+      <td class="num ${wv2!==null?(p2?'pos-val':'neg-val'):''}">${wv2!==null ? ((p2?'▲':'▼')+' '+Math.abs(wvPct2).toFixed(2)+'%') : '<span style="color:var(--text3)">—</span>'}</td>`;
+    tbodyETF.appendChild(tr2);
+  });
+
+  document.getElementById('etfCount').textContent = etfRows.length + ' posities';
+
+  // ETF totaal row
+  const etfP = etfWvEUR >= 0;
+  document.getElementById('etfTotaalRow').innerHTML = `
+    <div class="totaal-row">
+      <span>Totaal ETF's</span>
+      <span><strong>${eur(etfTotaalEUR)}</strong></span>
+      <span class="${etfP?'pos-val':'neg-val'}">${eur(etfWvEUR, true)}</span>
+    </div>`;
+
+  // Grand totaal
+  const stockTotaalEUR = stockRows.reduce((s, r) => {
+    const isin2 = r['Symbool/ISIN']||'';
+    const cnt = pn(r['Aantal']);
+    if (liveprices[isin2]?.priceEur) return s + liveprices[isin2].priceEur * cnt;
+    if (manualPrices[isin2]) {
+      const ep = manualPrices[isin2 + '_eur_per_stuk'];
+      return s + (ep ? ep * cnt : pn(r['Waarde in EUR']));
+    }
+    return s + pn(r['Waarde in EUR']);
+  }, 0);
+  const grandTotaal = stockTotaalEUR + etfTotaalEUR;
+  document.getElementById('portfolioTotaalRow').innerHTML = `
+    <div class="grand-totaal-row">
+      <span>Totaal Portefeuille (excl. cash)</span>
+      <span><strong>${eur(grandTotaal)}</strong></span>
+    </div>`;
+}
+
+// ── MANUAL PRICES ────────────────────────────────────────────────
+function startPriceEdit(isin) {
+  document.getElementById('pd-' + isin).style.display = 'none';
+  document.getElementById('pe-' + isin).style.display = 'inline-flex';
+  document.getElementById('peb-' + isin).style.display = 'none';
+  const inp = document.getElementById('pi-' + isin);
+  inp.focus(); inp.select();
+}
+function cancelPriceEdit(isin) {
+  document.getElementById('pd-' + isin).style.display = '';
+  document.getElementById('pe-' + isin).style.display = 'none';
+  document.getElementById('peb-' + isin).style.display = '';
+}
+function applyManualPrice(isin, currency, aantal) {
+  const v = parseFloat(document.getElementById('pi-' + isin).value);
+  if (isNaN(v) || v <= 0) return;
+  manualPrices[isin] = v;
+  manualPrices[isin + '_currency'] = currency;
+
+  const doSaveAndRender = (eurPerStuk) => {
+    manualPrices[isin + '_eur_per_stuk'] = eurPerStuk;
+    localStorage.setItem('degiro_manual_prices', JSON.stringify(manualPrices));
+    renderDashboard();
+    const ap = document.getElementById('page-analyse');
+    if (ap && ap.style.display !== 'none') renderAnalyse();
+  };
+
+  if (currency === 'USD') {
+    // Probeer wisselkoers op te halen, anders open.er-api.com als fallback
+    fetchFxRate('USD').then(rate => {
+      if (rate && rate > 0 && rate < 2) {
+        doSaveAndRender(v * rate);
+      } else {
+        return fetch('https://open.er-api.com/v6/latest/USD')
+          .then(r => r.json())
+          .then(d => doSaveAndRender(v * (d?.rates?.EUR || 0.91)))
+          .catch(() => doSaveAndRender(v * 0.91));
+      }
+    }).catch(() => {
+      fetch('https://open.er-api.com/v6/latest/USD')
+        .then(r => r.json())
+        .then(d => doSaveAndRender(v * (d?.rates?.EUR || 0.91)))
+        .catch(() => doSaveAndRender(v * 0.91));
+    });
+  } else if (currency === 'GBP') {
+    fetch('https://open.er-api.com/v6/latest/GBP')
+      .then(r => r.json())
+      .then(d => doSaveAndRender(v * (d?.rates?.EUR || 1.17)))
+      .catch(() => doSaveAndRender(v * 1.17));
+  } else {
+    doSaveAndRender(v);
+  }
+}
+
+function calcGAK() {
+  // Indexed by ISIN (betrouwbaarder dan naam want Portfolio.csv knipt namen af)
+  const gakByISIN = {};
+  const gakByName = {};
+  function toISO(r) { const p = r._datum.split('-'); return p.length===3 ? `${p[2]}-${p[1]}-${p[0]}` : r._datum; }
+  [...data.transactions].sort((a,b) => toISO(a).localeCompare(toISO(b))).forEach(r => {
+    const n = r._product; if (!n) return;
+    const isin = r['ISIN'] || '';
+
+    // Update by ISIN
+    if (isin) {
+      if (!gakByISIN[isin]) gakByISIN[isin] = { aantal:0, totaalBetaald:0 };
+      if (r._aantal > 0) {
+        gakByISIN[isin].totaalBetaald += Math.abs(r._totaal);
+        gakByISIN[isin].aantal += r._aantal;
+      } else if (r._aantal < 0 && gakByISIN[isin].aantal > 0) {
+        const ratio = Math.abs(r._aantal) / gakByISIN[isin].aantal;
+        gakByISIN[isin].totaalBetaald -= gakByISIN[isin].totaalBetaald * ratio;
+        gakByISIN[isin].aantal -= Math.abs(r._aantal);
+      }
+    }
+
+    // Also by name as fallback
+    if (!gakByName[n]) gakByName[n] = { aantal:0, totaalBetaald:0 };
+    if (r._aantal > 0) {
+      gakByName[n].totaalBetaald += Math.abs(r._totaal);
+      gakByName[n].aantal += r._aantal;
+    } else if (r._aantal < 0 && gakByName[n].aantal > 0) {
+      const ratio = Math.abs(r._aantal) / gakByName[n].aantal;
+      gakByName[n].totaalBetaald -= gakByName[n].totaalBetaald * ratio;
+      gakByName[n].aantal -= Math.abs(r._aantal);
+    }
+  });
+  return { byISIN: gakByISIN, byName: gakByName };
+}
+
+function getGAK(gak, name, isin) {
+  // Prefer ISIN lookup, fall back to name
+  if (isin && gak.byISIN[isin]) return gak.byISIN[isin];
+  if (gak.byName[name]) return gak.byName[name];
+  return { aantal:0, totaalBetaald:0 };
+}
+
+function loadSavedInleg() {
+  const saved = localStorage.getItem("degiro_inleg");
+  if (saved) { manualInleg = parseFloat(saved); }
+}
+
+function updateInleg() {
+  const v = parseFloat(document.getElementById('inlegInput').value);
+  if (!isNaN(v) && v > 0) {
+    manualInleg = v;
+    localStorage.setItem("degiro_inleg", v);
+    const s = document.getElementById("inlegSaved");
+    s.textContent = "✓ Opgeslagen";
+    setTimeout(() => { s.textContent = ""; }, 2500);
+    renderDashboard();
+  }
+}
+
+// ── ANALYSE ───────────────────────────────────────────────────────
+function getBestWaardeEUR(r) {
+  const isin = r['Symbool/ISIN'] || '';
+  const aantal = pn(r['Aantal']);
+  if (liveprices[isin] && liveprices[isin].priceEur) return liveprices[isin].priceEur * aantal;
+  if (manualPrices[isin]) {
+    const ep = manualPrices[isin + '_eur_per_stuk'] || manualPrices[isin];
+    return ep * aantal;
+  }
+  return pn(r['Waarde in EUR']);
+}
+
+function renderAnalyse() {
+  const rows = data.portfolio.filter(r => r['Product'] && !r['Product'].includes('CASH'));
+  const gak = calcGAK();
+  const COLORS = ['#4f80ff','#34d399','#fbbf24','#f87171','#a78bfa','#38bdf8','#fb923c','#4ade80','#e879f9','#94a3b8'];
+
+  const rowsVal = rows.map(r => ({
+    name: (r['Product']||'').trim(),
+    isin: r['Symbool/ISIN']||'',
+    aantal: pn(r['Aantal']),
+    waardeEUR: getBestWaardeEUR(r)
+  })).sort((a,b) => b.waardeEUR - a.waardeEUR);
+
+  const totaal = rowsVal.reduce((s,r) => s + r.waardeEUR, 0);
+
+  // ── DONUT CHART (pure SVG) ──────────────────────────────────────
+  const top8 = rowsVal.slice(0, 8);
+  const restVal = rowsVal.slice(8).reduce((s,r) => s + r.waardeEUR, 0);
+  const slices = [...top8.map((r,i) => ({ name: r.name, val: r.waardeEUR, color: COLORS[i] }))];
+  if (restVal > 0) slices.push({ name: 'Overig', val: restVal, color: COLORS[8] });
+
+  const cx = 110, cy = 110, R = 90, r2 = 52;
+  let angle = -Math.PI / 2;
+  let paths = '';
+  slices.forEach((s, i) => {
+    const frac = s.val / totaal;
+    const sweep = frac * 2 * Math.PI;
+    const x1 = cx + R * Math.cos(angle);
+    const y1 = cy + R * Math.sin(angle);
+    const x2 = cx + R * Math.cos(angle + sweep);
+    const y2 = cy + R * Math.sin(angle + sweep);
+    const xi1 = cx + r2 * Math.cos(angle);
+    const yi1 = cy + r2 * Math.sin(angle);
+    const xi2 = cx + r2 * Math.cos(angle + sweep);
+    const yi2 = cy + r2 * Math.sin(angle + sweep);
+    const lg = sweep > Math.PI ? 1 : 0;
+    paths += `<path d="M${xi1},${yi1} L${x1},${y1} A${R},${R} 0 ${lg},1 ${x2},${y2} L${xi2},${yi2} A${r2},${r2} 0 ${lg},0 ${xi1},${yi1}" fill="${s.color}" stroke="#111520" stroke-width="2" opacity="0.9"/>`;
+    angle += sweep;
+  });
+
+  const legend = slices.map((s,i) => {
+    const pct = totaal > 0 ? (s.val/totaal*100).toFixed(1) : '0';
+    const nameShort = s.name.length > 24 ? s.name.slice(0,22)+'…' : s.name;
+    return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+      <span style="width:10px;height:10px;border-radius:50%;background:${s.color};flex-shrink:0"></span>
+      <span style="font-size:12px;color:#8892b0;flex:1;line-height:1.3">${nameShort}</span>
+      <span style="font-size:12px;color:#c0c8e0;font-weight:600;white-space:nowrap">${pct}%</span>
+    </div>`;
+  }).join('');
+
+  const totaalFmt = '€' + Math.round(totaal).toLocaleString('nl-NL');
+  document.getElementById('donutChart').innerHTML = `
+    <svg width="220" height="220" style="flex-shrink:0">
+      ${paths}
+      <text x="${cx}" y="${cy-8}" text-anchor="middle" fill="#8892b0" font-size="11" font-family="Inter">Totaal</text>
+      <text x="${cx}" y="${cy+10}" text-anchor="middle" fill="#f0f2f8" font-size="13" font-weight="700" font-family="Inter">${totaalFmt}</text>
+    </svg>
+    <div style="flex:1;padding:4px 0;overflow-y:auto;max-height:240px">${legend}</div>`;
+
+  // ── W/V BAR CHART (pure HTML) ───────────────────────────────────
+  const pnlRows = rowsVal.map(r => {
+    const g = getGAK(gak, r.name, r.isin);
+    const kostprijs = g.aantal > 0 ? (g.totaalBetaald/g.aantal)*r.aantal : 0;
+    return { name: r.name, pnl: r.waardeEUR - kostprijs };
+  }).sort((a,b) => b.pnl - a.pnl);
+
+  const maxAbs = Math.max(...pnlRows.map(r => Math.abs(r.pnl)), 1);
+
+  const pnlHTML = pnlRows.map(r => {
+    const pos = r.pnl >= 0;
+    const pct = Math.abs(r.pnl) / maxAbs * 100;
+    const nameShort = r.name.length > 22 ? r.name.slice(0,20)+'…' : r.name;
+    const val = (pos ? '+ ' : '- ') + '€' + Math.abs(Math.round(r.pnl)).toLocaleString('nl-NL');
+    return `<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+      <span style="font-size:11px;color:#6a7a9a;width:130px;flex-shrink:0;text-align:right;line-height:1.2">${nameShort}</span>
+      <div style="flex:1;background:#0f1420;border-radius:4px;height:20px;position:relative">
+        <div style="position:absolute;${pos?'left':'right'}:0;width:${pct}%;height:100%;background:${pos?'#34d399':'#f87171'};border-radius:4px;opacity:0.8"></div>
+      </div>
+      <span style="font-size:11px;font-weight:700;color:${pos?'#34d399':'#f87171'};width:90px;flex-shrink:0">${val}</span>
+    </div>`;
+  }).join('');
+
+  document.getElementById('barPnl').innerHTML = `<div style="padding:4px 0">${pnlHTML}</div>`;
+
+  // ── MAANDELIJKSE AANKOPEN (pure HTML bars) ──────────────────────
+  const monthly = {};
+  data.transactions.filter(r => r._aantal > 0).forEach(r => {
+    const p = r._datum.split('-');
+    if (p.length === 3) { const k=`${p[2]}-${p[1]}`; monthly[k]=(monthly[k]||0)+Math.abs(r._totaal); }
+  });
+  const mKeys = Object.keys(monthly).sort();
+  const maxM = Math.max(...Object.values(monthly), 1);
+
+  const monthHTML = mKeys.map(k => {
+    const [y, m] = k.split('-');
+    const label = `${m}/${y.slice(2)}`;
+    const val = monthly[k];
+    const pct = val / maxM * 100;
+    const valFmt = '€' + Math.round(val).toLocaleString('nl-NL');
+    return `<div style="display:flex;flex-direction:column;align-items:center;gap:4px;flex:1;min-width:32px">
+      <span style="font-size:9px;color:#6a7a9a;writing-mode:vertical-rl;transform:rotate(180deg);height:36px;line-height:1">${label}</span>
+      <div style="width:100%;background:#0f1420;border-radius:3px 3px 0 0;position:relative;height:120px;display:flex;align-items:flex-end">
+        <div style="width:100%;height:${pct}%;background:#3060c0;border-radius:3px 3px 0 0;border-top:1px solid #4f80ff"></div>
+      </div>
+      <span style="font-size:9px;color:#4a5475;text-align:center">${valFmt}</span>
+    </div>`;
+  }).join('');
+
+  document.getElementById('barMonth').innerHTML = `
+    <div style="display:flex;align-items:flex-end;gap:3px;padding:8px 4px 4px;overflow-x:auto">${monthHTML}</div>`;
+}
+
+// ── VERKOPEN ──────────────────────────────────────────────────────
+// Toggle uitklappen van groep transacties
+function toggleGroup(g, headerRow, results) {
+  // Check if detail rows already exist
+  const existingRows = document.querySelectorAll(`tr[data-child="${g.name}"]`);
+  if (existingRows.length > 0) {
+    // Inklappen
+    existingRows.forEach(r => r.remove());
+    const expandSpan = headerRow.querySelector('span[style*="accent"]');
+    if (expandSpan) expandSpan.textContent = '▼ uitklappen';
+    return;
+  }
+
+  if (g.txs.length === 1) {
+    // Enkel — direct detail modal
+    showSalesDetail(g.txs[0].origIdx, results);
+    return;
+  }
+
+  // Uitklappen — voeg child rijen in na headerRow
+  const expandSpan = headerRow.querySelector('span[style*="accent"]');
+  if (expandSpan) expandSpan.textContent = '▲ inklappen';
+
+  let ref = headerRow;
+  g.txs.forEach((r, i) => {
+    const pos = r.pnl >= 0;
+    const child = document.createElement('tr');
+    child.dataset.child = g.name;
+    child.style.background = '#0a0f1a';
+    child.style.cursor = 'pointer';
+    child.title = 'Klik voor detail';
+    child.onclick = (e) => { e.stopPropagation(); showSalesDetail(r.origIdx, results); };
+    child.innerHTML = `
+      <td class="td-product" style="padding-left:32px">
+        <span style="color:var(--text3);font-size:12px">↳ ${r.datum}</span>
+      </td>
+      <td class="num" style="color:var(--text3);font-size:12px">${i+1}/${g.txs.length}</td>
+      <td class="num" style="font-size:12px">${r.aantal.toLocaleString('nl-NL',{maximumFractionDigits:0})}</td>
+      <td class="num" style="font-size:12px">${eur(r.gak)}</td>
+      <td class="num" style="font-size:12px">${eur(r.verkoopKoers)}</td>
+      <td class="num" style="font-size:12px">${eur(r.kostprijs)}</td>
+      <td class="num" style="font-size:12px">${eur(r.opbrengst)}</td>
+      <td class="num ${pos?'pos-val':'neg-val'}" style="font-size:12px">${eur(r.pnl, true)}</td>
+      <td class="num ${pos?'pos-val':'neg-val'}" style="font-size:12px">${pos?'▲':'▼'} ${Math.abs(r.pnlPct).toFixed(2)}%</td>`;
+    ref.after(child);
+    ref = child;
+  });
+}
+
+// Berekent winst/verlies per verkoop via FIFO methode
+function calcVerkoopPnL() {
+  // Datum is DD-MM-YYYY — omzetten naar YYYY-MM-DD voor correcte sortering
+  function datumSort(r) {
+    const p = r._datum.split('-');
+    return p.length === 3 ? `${p[2]}-${p[1]}-${p[0]} ${r['Tijd']||'00:00'}` : r._datum;
+  }
+  const sorted = [...data.transactions].sort((a,b) => datumSort(a).localeCompare(datumSort(b)));
+  // Per product een queue van aankopen bijhouden (FIFO)
+  const buyQueues = {}; // name -> [{datum, koersEUR, aantal, rest}]
+  const results = []; // verkopen met pnl
+
+  sorted.forEach(r => {
+    const name = r._product;
+    if (!name) return;
+    if (!buyQueues[name]) buyQueues[name] = [];
+
+    if (r._aantal > 0) {
+      // Aankoop: totaal is negatief (geld uit), dus abs() gebruiken
+      // koersEUR per stuk = wat betaald / aantal
+      const betaald = Math.abs(r._totaal); // altijd positief
+      const koersEUR = betaald > 0 ? betaald / r._aantal : Math.abs(r._koers);
+      buyQueues[name].push({
+        datum: r._datum,
+        koersEUR: koersEUR,  // kostprijs per stuk in EUR
+        aantal: r._aantal,
+        rest: r._aantal
+      });
+    } else if (r._aantal < 0) {
+      // Verkoop: totaal is positief (geld in)
+      let teVerkopen = Math.abs(r._aantal);
+      const verkochteAantal = Math.abs(r._aantal);
+      // Verkoopkoers per stuk
+      const opbrengst = Math.abs(r._totaal); // altijd positief
+      const verkoopKoersEUR = verkochteAantal > 0 ? opbrengst / verkochteAantal : Math.abs(r._koers);
+      let totaalKostprijs = 0;
+      const gebruikteAankopen = [];
+
+      const queue = buyQueues[name] || [];
+      while (teVerkopen > 0 && queue.length > 0) {
+        const buy = queue[0];
+        const gebruik = Math.min(buy.rest, teVerkopen);
+        totaalKostprijs += gebruik * buy.koersEUR; // kostprijs = stukken x aankoopprijs
+        gebruikteAankopen.push({ datum: buy.datum, aantal: gebruik, koersEUR: buy.koersEUR });
+        buy.rest -= gebruik;
+        teVerkopen -= gebruik;
+        if (buy.rest < 0.0001) queue.shift();
+      }
+
+      // PnL = wat ontvangen - wat betaald
+      const pnl = opbrengst - totaalKostprijs;
+      const gakVerkoop = verkochteAantal > 0 ? totaalKostprijs / verkochteAantal : 0;
+
+      results.push({
+        product: name,
+        datum: r._datum,
+        aantal: verkochteAantal,
+        verkoopKoers: verkoopKoersEUR,
+        opbrengst,
+        kostprijs: totaalKostprijs,
+        gak: gakVerkoop,
+        pnl,
+        pnlPct: totaalKostprijs > 0 ? (pnl / totaalKostprijs * 100) : 0,
+        aankopen: gebruikteAankopen
+      });
+    }
+  });
+
+  // Alleen aandelen tonen die volledig verkocht zijn (resterende positie = 0)
+  const currentPositions = {};
+  Object.entries(buyQueues).forEach(([name, queue]) => {
+    currentPositions[name] = queue.reduce((s, b) => s + b.rest, 0);
+  });
+
+  const filteredResults = results.filter(r => {
+    const rest = currentPositions[r.product] || 0;
+    return rest < 0.001; // volledig gesloten positie
+  });
+
+  return filteredResults.sort((a,b) => b.datum.localeCompare(a.datum));
+}
+
+function showSalesDetail(idx, results) {
+  const r = results[idx];
+  document.getElementById('modalTitle').textContent = r.product;
+  const pos = r.pnl >= 0;
+
+  const aankoopRows = r.aankopen.map(a =>
+    `<tr>
+      <td style="color:#8892b0">${a.datum}</td>
+      <td class="num">${a.aantal.toLocaleString('nl-NL',{maximumFractionDigits:4})}</td>
+      <td class="num">${eur(a.koersEUR)}</td>
+      <td class="num">${eur(a.aantal * a.koersEUR)}</td>
+    </tr>`
+  ).join('');
+
+  document.getElementById('modalContent').innerHTML = `
+    <div style="background:#0f1420;border-radius:10px;padding:16px;margin-bottom:16px;display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div><div style="font-size:11px;color:#555;margin-bottom:4px">VERKOOPDATUM</div><div style="font-weight:600;color:#fff">${r.datum}</div></div>
+      <div><div style="font-size:11px;color:#555;margin-bottom:4px">AANTAL</div><div style="font-weight:600;color:#fff">${r.aantal.toLocaleString('nl-NL',{maximumFractionDigits:0})}</div></div>
+      <div><div style="font-size:11px;color:#555;margin-bottom:4px">GAK (EUR)</div><div style="font-weight:600;color:#fff">${eur(r.gak)}</div></div>
+      <div><div style="font-size:11px;color:#555;margin-bottom:4px">VERKOOPKOERS</div><div style="font-weight:600;color:#fff">${eur(r.verkoopKoers)}</div></div>
+      <div><div style="font-size:11px;color:#555;margin-bottom:4px">KOSTPRIJS</div><div style="font-weight:600;color:#fff">${eur(r.kostprijs)}</div></div>
+      <div><div style="font-size:11px;color:#555;margin-bottom:4px">OPBRENGST</div><div style="font-weight:600;color:#fff">${eur(r.opbrengst)}</div></div>
+      <div style="grid-column:1/-1;border-top:1px solid #1e2540;padding-top:12px">
+        <div style="font-size:11px;color:#555;margin-bottom:4px">WINST / VERLIES</div>
+        <div style="font-size:22px;font-weight:700;color:${pos?'#34d399':'#f87171'}">${eur(r.pnl, true)} <span style="font-size:14px">(${pos?'+':''}${r.pnlPct.toFixed(2)}%)</span></div>
+      </div>
+    </div>
+    <h4 style="font-size:13px;color:#8892b0;margin-bottom:10px">Gekoppelde aankopen (FIFO)</h4>
+    <table style="width:100%;border-collapse:collapse;font-size:13px">
+      <thead><tr>
+        <th style="text-align:left;padding:8px 10px;font-size:10px;color:#4a5475;text-transform:uppercase;border-bottom:1px solid #1e2540">Aankoopdatum</th>
+        <th style="text-align:right;padding:8px 10px;font-size:10px;color:#4a5475;text-transform:uppercase;border-bottom:1px solid #1e2540">Aantal</th>
+        <th style="text-align:right;padding:8px 10px;font-size:10px;color:#4a5475;text-transform:uppercase;border-bottom:1px solid #1e2540">Aankoopkoers</th>
+        <th style="text-align:right;padding:8px 10px;font-size:10px;color:#4a5475;text-transform:uppercase;border-bottom:1px solid #1e2540">Kostprijs</th>
+      </tr></thead>
+      <tbody>${aankoopRows}</tbody>
+    </table>`;
+
+  const modal = document.getElementById('salesModal');
+  modal.style.display = 'flex';
+  modal.onclick = function(e) { if (e.target === modal) modal.style.display = 'none'; };
+}
+
+function renderVerkopen() {
+  const results = calcVerkoopPnL();
+  const tbody = document.querySelector('#tblSales tbody');
+  tbody.innerHTML = '';
+
+  let totaalWinst = 0, totaalVerlies = 0, winstCount = 0, verliesCount = 0;
+
+  // Groepeer per product
+  const grouped = {};
+  results.forEach((r, idx) => {
+    if (!grouped[r.product]) grouped[r.product] = [];
+    grouped[r.product].push({ ...r, origIdx: idx });
+  });
+
+  // Sorteer groepen op totaal W/V (hoogste winst bovenaan)
+  const groups = Object.entries(grouped).map(([name, txs]) => {
+    const totAantal    = txs.reduce((s,r) => s + r.aantal, 0);
+    const totKostprijs = txs.reduce((s,r) => s + r.kostprijs, 0);
+    const totOpbrengst = txs.reduce((s,r) => s + r.opbrengst, 0);
+    const totPnl       = totOpbrengst - totKostprijs;
+    const gemGAK       = totAantal > 0 ? totKostprijs / totAantal : 0;
+    const gemVK        = totAantal > 0 ? totOpbrengst / totAantal : 0;
+    const pnlPct       = totKostprijs > 0 ? (totPnl / totKostprijs * 100) : 0;
+    return { name, txs, totAantal, totKostprijs, totOpbrengst, totPnl, gemGAK, gemVK, pnlPct };
+  }).sort((a,b) => b.totPnl - a.totPnl);
+
+  groups.forEach(g => {
+    // Totalen voor KPI
+    if (g.totPnl >= 0) { totaalWinst += g.totPnl; winstCount++; }
+    else { totaalVerlies += g.totPnl; verliesCount++; }
+
+    const pos = g.totPnl >= 0;
+    const hasMultiple = g.txs.length > 1;
+
+    // Hoofdrij (samengevouwen)
+    const tr = document.createElement('tr');
+    tr.style.cursor = 'pointer';
+    tr.title = hasMultiple ? `Klik voor ${g.txs.length} transacties` : 'Klik voor detail';
+    tr.dataset.group = g.name;
+    tr.onclick = () => toggleGroup(g, tr, results);
+    tr.innerHTML = `
+      <td class="td-product">
+        <strong>${g.name}</strong>
+        <span style="display:flex;align-items:center;gap:6px;margin-top:2px">
+          <span style="font-size:10px;color:var(--text3)">${g.txs.length} transactie${g.txs.length > 1 ? 's' : ''}</span>
+          ${hasMultiple ? `<span style="font-size:10px;color:var(--accent)">▼ uitklappen</span>` : ''}
+        </span>
+      </td>
+      <td class="num" style="color:var(--text3)">${g.txs.length}</td>
+      <td class="num">${g.totAantal.toLocaleString('nl-NL',{maximumFractionDigits:0})}</td>
+      <td class="num">${eur(g.gemGAK)}</td>
+      <td class="num">${eur(g.gemVK)}</td>
+      <td class="num">${eur(g.totKostprijs)}</td>
+      <td class="num">${eur(g.totOpbrengst)}</td>
+      <td class="num ${pos?'pos-val':'neg-val'}">${eur(g.totPnl, true)}</td>
+      <td class="num ${pos?'pos-val':'neg-val'}">${pos?'▲':'▼'} ${Math.abs(g.pnlPct).toFixed(2)}%</td>`;
+    tbody.appendChild(tr);
+  });
+
+  const netto = totaalWinst + totaalVerlies;
+  const nettoPos = netto >= 0;
+
+  document.getElementById('salesTotaalWinst').textContent = eur(totaalWinst);
+  document.getElementById('salesWinstCount').textContent = winstCount + ' winstgevende aandelen';
+  document.getElementById('salesTotaalVerlies').textContent = eur(Math.abs(totaalVerlies));
+  document.getElementById('salesVerliesCount').textContent = verliesCount + ' verliesgevende aandelen';
+  document.getElementById('salesNetto').textContent = eur(Math.abs(netto));
+  document.getElementById('salesNetto').className = 'kpi-value ' + (nettoPos ? 'pos-val' : 'neg-val');
+  document.getElementById('salesTotaalCount').textContent = results.length + ' transacties totaal';
+  document.getElementById('salesCount').textContent = groups.length + ' aandelen (' + results.length + ' transacties)';
+
+  document.getElementById('salesTotaalRow').innerHTML = `
+    <div class="totaal-row">
+      <span>Netto resultaat alle verkopen</span>
+      <span class="${nettoPos?'pos-val':'neg-val'}"><strong>${eur(netto, true)}</strong></span>
+    </div>`;
+}
+
+// ── TRANSACTIES ───────────────────────────────────────────────────
+function renderTransacties() {
+  const sorted = [...data.transactions].sort((a,b) => b._datum.localeCompare(a._datum));
+  const tbody = document.querySelector('#tblTransacties tbody');
+  tbody.innerHTML = '';
+  sorted.forEach(r => {
+    const isBuy = r._aantal > 0;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td style="color:var(--text3)">${r._datum}</td>
+      <td class="td-product"><strong>${r._product}</strong></td>
+      <td><span class="${isBuy?'badge-koop':'badge-verkoop'}">${isBuy?'KOOP':'VERKOOP'}</span></td>
+      <td class="num">${Math.abs(r._aantal).toLocaleString('nl-NL',{maximumFractionDigits:4})}</td>
+      <td class="num">${eur(r._koers)}</td>
+      <td class="num"><strong>${eur(Math.abs(r._totaal))}</strong></td>
+      <td class="num ${r._kosten ? 'neg-val' : ''}">${r._kosten ? eur(Math.abs(r._kosten)) : '<span style="color:var(--text3)">—</span>'}</td>`;
+    tbody.appendChild(tr);
+  });
+  document.getElementById('txCount').textContent = sorted.length + ' transacties';
+}
+
+// ── NAV ───────────────────────────────────────────────────────────
+const pageNames = { dashboard:'Dashboard', analyse:'Analyse', verkopen:'Verkochte Aandelen', transacties:'Alle Transacties', kosten:'Transactiekosten', risico:'Risico-analyse', watchlist:'Watchlist' };
+function showPage(name, el) {
+  // Watchlist werkt ook zonder CSV upload
+  if (name === 'watchlist') {
+    document.getElementById('uploadScreen').style.display = 'none';
+    document.getElementById('dashContent').classList.add('visible');
+  }
+  ['dashboard','analyse','verkopen','transacties','kosten','risico','watchlist'].forEach(p => {
+    document.getElementById('page-'+p).style.display = p === name ? 'block' : 'none';
+  });
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('bcPage').textContent = pageNames[name] || name;
+  closeSidebarOnMobile();
+  if (name === 'analyse' && data.portfolio.length > 0) {
+    renderAnalyse();
+  }
+  if (name === 'kosten' && data.transactions.length > 0) {
+    renderKosten();
+  }
+  if (name === 'risico') {
+    renderRisico();
+  }
+  if (name === 'watchlist') {
+    renderWatchlist();
+  }
+}
+
+async function testTwelveData() {
+  const key = twelveKey();
+  const finnKey = apiKey();
+  const lines = [
+    `🔑 Twelve Data key: ${key ? key.slice(0,8)+'...' : 'NIET INGEVULD'}`,
+    `🔑 Finnhub key: ${finnKey ? finnKey.slice(0,8)+'...' : 'NIET INGEVULD'}`,
+    '',
+    '📊 Live prices in geheugen:'
+  ];
+
+  const isins = Object.keys(liveprices);
+  if (isins.length === 0) {
+    lines.push('  ❌ Geen koersen geladen!');
+    lines.push('  → Twelve Data: ' + (key ? 'key aanwezig' : 'geen key'));
+    lines.push('  → Finnhub: ' + (finnKey ? 'key aanwezig' : 'geen key'));
+  } else {
+    isins.forEach(isin => {
+      const p = liveprices[isin];
+      lines.push(`  ✓ ${isin}: ${p.currency} ${p.price?.toFixed(2)} → €${p.priceEur?.toFixed(2)} [${p.source || 'finnhub'}]`);
+    });
+  }
+
+  lines.push('');
+  lines.push('📈 Status per bron:');
+  const totalLive = Object.keys(liveprices).length;
+  const fromTwelve = Object.values(liveprices).filter(p => p.source === 'twelvedata').length;
+  const fromFinnhub = Object.values(liveprices).filter(p => p.source !== 'twelvedata').length;
+  lines.push(`  Twelve Data: ${fromTwelve} aandelen`);
+  lines.push(`  Finnhub: ${fromFinnhub} aandelen`);
+  lines.push('');
+  lines.push('💡 Tip: Twelve Data limiet is 8 req/min.');
+  lines.push('  Dashboard gebruikt 2-3 requests (batch).');
+  lines.push('  Wacht 1 minuut na laden voor refresh.');
+
+  const modal = document.getElementById('positionModal');
+  document.getElementById('posModalTitle').textContent = '🔍 API Debug';
+  document.getElementById('posModalISIN').textContent = '';
+  document.getElementById('posModalContent').innerHTML = `
+    <div style="background:#080f1a;border-radius:10px;padding:16px;font-family:monospace;font-size:12px;line-height:1.9;white-space:pre-wrap;color:#8892b0;max-height:400px;overflow-y:auto">
+      ${lines.join('\n')}
+    </div>`;
+  modal.style.display = 'flex';
+  modal.onclick = e => { if (e.target === modal) modal.style.display = 'none'; };
+}
+
+async function debugFinnhub() {
+  const key = apiKey();
+  if (!key) { alert('Geen API key ingevuld!'); return; }
+
+  const lines = [`🔑 API key: ${key.slice(0,8)}...`, ''];
+
+  // Test 1: quote voor ASML.AS
+  try {
+    const r1 = await fetch(`https://finnhub.io/api/v1/quote?symbol=ASML.AS&token=${key}`);
+    const d1 = await r1.json();
+    lines.push(`ASML.AS quote: ${JSON.stringify(d1)}`);
+  } catch(e) { lines.push(`ASML.AS FOUT: ${e.message}`); }
+
+  // Test 2: quote voor AMZN
+  try {
+    const r2 = await fetch(`https://finnhub.io/api/v1/quote?symbol=AMZN&token=${key}`);
+    const d2 = await r2.json();
+    lines.push(`AMZN quote: ${JSON.stringify(d2)}`);
+  } catch(e) { lines.push(`AMZN FOUT: ${e.message}`); }
+
+  // Test 3: FX rate
+  try {
+    const r3 = await fetch(`https://finnhub.io/api/v1/forex/rates?base=EUR&token=${key}`);
+    const d3 = await r3.json();
+    const usd = d3?.quote?.USD;
+    lines.push(`EUR/USD rate: ${usd ? (1/usd).toFixed(4) : 'niet gevonden'}`);
+  } catch(e) { lines.push(`FX FOUT: ${e.message}`); }
+
+  // Toon resultaat
+  const modal = document.getElementById('positionModal');
+  document.getElementById('posModalTitle').textContent = '🔍 Finnhub API Debug';
+  document.getElementById('posModalISIN').textContent = '';
+  document.getElementById('posModalContent').innerHTML = `
+    <div style="background:#080f1a;border-radius:10px;padding:16px;font-family:monospace;font-size:12px;line-height:1.8;white-space:pre-wrap;color:#8892b0">
+      ${lines.join('\n')}
+    </div>
+    <p style="margin-top:12px;font-size:12px;color:#555">
+      Als koers = 0 of {} dan is de markt gesloten of is de ticker verkeerd.<br>
+      Als je een foutmelding ziet, controleer dan je internetverbinding.
+    </p>`;
+  modal.style.display = 'flex';
+  modal.onclick = e => { if (e.target === modal) modal.style.display = 'none'; };
+}
+
+function toggleSidebar() {
+  document.querySelector('.sidebar').classList.toggle('open');
+  document.getElementById('sidebarOverlay').classList.toggle('active');
+}
+
+// Sluit sidebar automatisch na navigatie op mobiel
+function closeSidebarOnMobile() {
+  if (window.innerWidth <= 960) {
+    document.querySelector('.sidebar').classList.remove('open');
+    document.getElementById('sidebarOverlay').classList.remove('active');
+  }
+}
+
+function refreshAll() {
+  liveprices = {};
+  renderDashboard();
+  const analysePage = document.getElementById('page-analyse');
+  if (analysePage && analysePage.style.display !== 'none') renderAnalyse();
+  tick();
+  if (twelveKey()) {
+    loadTwelveDataPrices().then(success => {
+      if (!success && apiKey()) loadLivePrices();
+    });
+  } else if (apiKey()) {
+    loadLivePrices();
+  }
+}
+
+function tick() {
+  const now = new Date();
+  document.getElementById('lastUpdate').textContent =
+    'Bijgewerkt: ' + now.toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'});
+}
+
+function resetToUpload() {
+  Object.keys(charts).forEach(k => { try { charts[k].destroy(); } catch(e){} delete charts[k]; });
+  
+  ['transactions','portfolio','account'].forEach(s => {
+    if (files[s]) {
+      document.getElementById('slot-'+s).classList.add('loaded');
+      document.getElementById('status-'+s).textContent = '✓ Bestaand bestand';
+    } else {
+      document.getElementById('slot-'+s).classList.remove('loaded');
+      document.getElementById('status-'+s).textContent = 'Klik of sleep';
+    }
+  });
+
+  if (data.transactions && data.transactions.length > 0) {
+    document.getElementById('cancelUploadBtn').style.display = 'inline-flex';
+    document.getElementById('startBtn').disabled = false;
+  } else {
+    document.getElementById('cancelUploadBtn').style.display = 'none';
+    document.getElementById('startBtn').disabled = !(files.transactions && files.portfolio && files.account);
+  }
+
+  document.getElementById('dashContent').classList.remove('visible');
+  document.getElementById('uploadScreen').style.display = 'flex';
+  document.getElementById('refreshBtn').style.display = 'none';
+  document.getElementById('bcPage').textContent = 'Dashboard';
+}
+
+function cancelUpload() {
+  document.getElementById('uploadScreen').style.display = 'none';
+  document.getElementById('dashContent').classList.add('visible');
+  document.getElementById('refreshBtn').style.display = 'flex';
+}
+
+function renderKosten() {
+  const costCol = 'Transactiekosten en/of kosten van derden EUR';
+  const costRows = data.transactions.filter(r => r._kosten && Math.abs(r._kosten) > 0);
+
+  // Per jaar groeperen
+  const perJaar = {};
+  costRows.forEach(r => {
+    const parts = r._datum.split('-');
+    if (parts.length !== 3) return;
+    const jaar = parts[2];
+    if (!perJaar[jaar]) perJaar[jaar] = { count: 0, totaal: 0, rows: [] };
+    perJaar[jaar].count++;
+    perJaar[jaar].totaal += Math.abs(r._kosten);
+    perJaar[jaar].rows.push(r);
+  });
+
+  const jaren = Object.keys(perJaar).sort();
+  const totaal = costRows.reduce((s,r) => s + Math.abs(r._kosten), 0);
+  const gemPerTx = costRows.length > 0 ? totaal / costRows.length : 0;
+  const duurstJaar = jaren.reduce((a,b) => perJaar[a].totaal > perJaar[b].totaal ? a : b, jaren[0]);
+
+  // KPI's
+  document.getElementById('kostenTotaal').textContent = eur(totaal);
+  document.getElementById('kostenTxCount').textContent = costRows.length + ' transacties met kosten';
+  document.getElementById('kostenGem').textContent = eur(gemPerTx);
+  document.getElementById('kostenDuurstJaar').textContent = duurstJaar;
+  document.getElementById('kostenDuurstBedrag').textContent = eur(perJaar[duurstJaar].totaal) + ' in ' + duurstJaar;
+
+  // Bar chart per jaar
+  const maxKosten = Math.max(...jaren.map(j => perJaar[j].totaal));
+  const barHTML = jaren.map(j => {
+    const pct = perJaar[j].totaal / maxKosten * 100;
+    return `<div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">
+      <span style="width:40px;font-size:13px;font-weight:600;color:#8892b0;flex-shrink:0">${j}</span>
+      <div style="flex:1;background:#0f1420;border-radius:4px;height:28px;position:relative">
+        <div style="width:${pct}%;height:100%;background:linear-gradient(90deg,#3a1010,#c0392b);border-radius:4px;opacity:0.85"></div>
+        <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:12px;font-weight:600;color:#f87171">${eur(perJaar[j].totaal)}</span>
+      </div>
+      <span style="width:80px;font-size:12px;color:#555;flex-shrink:0;text-align:right">${perJaar[j].count} transacties</span>
+    </div>`;
+  }).join('');
+  document.getElementById('kostenJaarChart').innerHTML = barHTML;
+
+  // Cumulatief tabel
+  const tbody1 = document.querySelector('#tblKostenJaar tbody');
+  tbody1.innerHTML = '';
+  let cumul = 0;
+  jaren.forEach(j => {
+    cumul += perJaar[j].totaal;
+    const gem = perJaar[j].totaal / perJaar[j].count;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><strong>${j}</strong></td>
+      <td class="num">${perJaar[j].count}</td>
+      <td class="num neg-val">${eur(perJaar[j].totaal)}</td>
+      <td class="num">${eur(gem)}</td>
+      <td class="num" style="color:#a78bfa;font-weight:600">${eur(cumul)}</td>`;
+    tbody1.appendChild(tr);
+  });
+
+  // Top 20 duurste transacties
+  const top20 = [...costRows]
+    .sort((a,b) => Math.abs(b._kosten) - Math.abs(a._kosten))
+    .slice(0, 20);
+
+  const tbody2 = document.querySelector('#tblKostenTop tbody');
+  tbody2.innerHTML = '';
+  top20.forEach(r => {
+    const kosten = Math.abs(r._kosten);
+    const waarde = Math.abs(r._totaal);
+    const pct = waarde > 0 ? (kosten / waarde * 100) : 0;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td style="color:var(--text3)">${r._datum}</td>
+      <td class="td-product"><strong>${r._product}</strong></td>
+      <td class="num neg-val">${eur(kosten)}</td>
+      <td class="num">${eur(waarde)}</td>
+      <td class="num" style="color:#fbbf24">${pct.toFixed(3)}%</td>`;
+    tbody2.appendChild(tr);
+  });
+}
+
+// ── WATCHLIST ─────────────────────────────────────────────────────
+let watchlist = [];
+
+function loadWatchlist() {
+  const saved = localStorage.getItem('degiro_watchlist');
+  if (saved) { try { watchlist = JSON.parse(saved); } catch(e) { watchlist = []; } }
+}
+function saveWatchlist() {
+  localStorage.setItem('degiro_watchlist', JSON.stringify(watchlist));
+}
+
+async function addToWatchlist() {
+  const tickerRaw = document.getElementById('wlTickerInput').value.trim().toUpperCase();
+  const isinRaw = document.getElementById('wlIsinInput').value.trim().toUpperCase();
+  const exchange = document.getElementById('wlExchangeInput').value;
+  const statusEl = document.getElementById('wlAddStatus');
+
+  if (!tickerRaw && !isinRaw) {
+    statusEl.innerHTML = '<span style="color:#f87171">Vul een ticker of ISIN in</span>';
+    return;
+  }
+
+  statusEl.innerHTML = '<span style="color:#8892b0">⟳ Opzoeken…</span>';
+
+  let symbol = tickerRaw;
+  let displayName = tickerRaw;
+  let usedIsin = isinRaw || null;
+
+  // Als ISIN ingevuld: probeer ticker te vinden via Twelve Data symbol_search
+  if (isinRaw && !tickerRaw) {
+    const key = twelveKey();
+    if (key) {
+      try {
+        const res = await fetch(`https://api.twelvedata.com/symbol_search?symbol=${isinRaw}&apikey=${key}`);
+        const d = await res.json();
+        if (d?.data?.[0]) {
+          symbol = d.data[0].symbol;
+          displayName = d.data[0].instrument_name || symbol;
+        } else {
+          statusEl.innerHTML = '<span style="color:#f87171">ISIN niet gevonden — probeer ticker in plaats daarvan</span>';
+          return;
+        }
+      } catch(e) {
+        statusEl.innerHTML = '<span style="color:#f87171">Zoekfout — probeer een ticker</span>';
+        return;
+      }
+    } else {
+      statusEl.innerHTML = '<span style="color:#f87171">Twelve Data key nodig om op ISIN te zoeken</span>';
+      return;
+    }
+  }
+
+  const fullSymbol = exchange ? `${symbol}:${exchange}` : symbol;
+
+  // Check of al op watchlist staat
+  if (watchlist.some(w => w.symbol === fullSymbol)) {
+    statusEl.innerHTML = '<span style="color:#fbbf24">Staat al op je watchlist</span>';
+    return;
+  }
+
+  // Test of ticker geldig is door een quote op te halen
+  const quote = await fetchWatchlistQuote(fullSymbol);
+  if (!quote) {
+    statusEl.innerHTML = '<span style="color:#f87171">Ticker niet gevonden — controleer spelling en beurs</span>';
+    return;
+  }
+
+  watchlist.push({
+    symbol: fullSymbol,
+    displayName: quote.name || displayName || symbol,
+    isin: usedIsin,
+    addedDate: new Date().toISOString(),
+    addedPrice: quote.price
+  });
+  saveWatchlist();
+
+  document.getElementById('wlTickerInput').value = '';
+  document.getElementById('wlIsinInput').value = '';
+  statusEl.innerHTML = `<span style="color:#34d399">✓ ${quote.name || symbol} toegevoegd</span>`;
+  setTimeout(() => { statusEl.innerHTML = ''; }, 3000);
+
+  renderWatchlist();
+}
+
+async function fetchWatchlistQuote(symbol) {
+  const tKey = twelveKey();
+  const fKey = apiKey();
+
+  // Probeer Twelve Data eerst
+  if (tKey) {
+    try {
+      const res = await fetch(`https://api.twelvedata.com/quote?symbol=${symbol}&apikey=${tKey}`);
+      const d = await res.json();
+      if (d && d.close && !d.code) {
+        return {
+          price: parseFloat(d.close),
+          change: parseFloat(d.percent_change),
+          name: d.name || symbol,
+          currency: d.currency || 'USD',
+          source: 'twelvedata'
+        };
+      }
+    } catch(e) {}
+  }
+
+  // Fallback Finnhub (alleen US tickers werken op gratis tier)
+  if (fKey) {
+    try {
+      const baseSymbol = symbol.split(':')[0];
+      const res = await fetch(`https://finnhub.io/api/v1/quote?symbol=${baseSymbol}&token=${fKey}`);
+      const d = await res.json();
+      if (d && d.c && d.c > 0) {
+        return { price: d.c, change: d.dp, name: baseSymbol, currency: 'USD', source: 'finnhub' };
+      }
+    } catch(e) {}
+  }
+
+  return null;
+}
+
+function removeFromWatchlist(symbol) {
+  watchlist = watchlist.filter(w => w.symbol !== symbol);
+  saveWatchlist();
+  renderWatchlist();
+}
+
+async function refreshWatchlist() {
+  await renderWatchlist(true);
+}
+
+async function renderWatchlist(forceRefresh) {
+  loadWatchlist();
+  const tbody = document.querySelector('#tblWatchlist tbody');
+  const emptyEl = document.getElementById('wlEmpty');
+  const countEl = document.getElementById('wlCount');
+
+  if (watchlist.length === 0) {
+    tbody.innerHTML = '';
+    emptyEl.style.display = 'block';
+    countEl.textContent = '';
+    return;
+  }
+  emptyEl.style.display = 'none';
+  countEl.textContent = watchlist.length + ' aandelen';
+
+  // Wisselkoers ophalen
+  let fxRates = {};
+  try {
+    const fxRes = await fetch('https://open.er-api.com/v6/latest/EUR');
+    const fxData = await fxRes.json();
+    fxRates = fxData.rates || {};
+  } catch(e) {}
+
+  tbody.innerHTML = watchlist.map(w =>
+    `<tr id="wl-row-${btoa(w.symbol).replace(/[^a-zA-Z0-9]/g,'')}">
+      <td class="td-product"><strong>${w.displayName}</strong><span>${w.symbol}</span></td>
+      <td class="num">⟳</td><td class="num">⟳</td><td class="num">⟳</td>
+      <td class="num">—</td><td class="num">—</td>
+      <td class="num" style="color:var(--text3);font-size:12px">${new Date(w.addedDate).toLocaleDateString('nl-NL')}</td>
+      <td class="num"><button onclick="removeFromWatchlist('${w.symbol}')" style="background:#200a0a;border:1px solid #3a1010;color:#f87171;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer">Verwijder</button></td>
+    </tr>`
+  ).join('');
+
+  // Live data per rij ophalen en updaten
+  for (const w of watchlist) {
+    const quote = await fetchWatchlistQuote(w.symbol);
+    const rowId = 'wl-row-' + btoa(w.symbol).replace(/[^a-zA-Z0-9]/g,'');
+    const row = document.getElementById(rowId);
+    if (!row || !quote) continue;
+
+    const rate = quote.currency === 'EUR' ? 1 : (1 / (fxRates[quote.currency] || 1.13));
+    const priceEur = quote.price * rate;
+    const changePos = quote.change >= 0;
+    const curSymbol = quote.currency === 'USD' ? '$' : quote.currency === 'GBP' ? '£' : '€';
+
+    // P/E en P/S ophalen (Twelve Data)
+    let pe = '—', ps = '—';
+    const tKey = twelveKey();
+    if (tKey) {
+      try {
+        const statRes = await fetch(`https://api.twelvedata.com/statistics?symbol=${w.symbol}&apikey=${tKey}`);
+        const statD = await statRes.json();
+        if (statD?.valuations_metrics) {
+          const peVal = parseFloat(statD.valuations_metrics.pe_ratio);
+          const psVal = parseFloat(statD.valuations_metrics.price_to_sales_ratio);
+          pe = peVal > 0 && peVal < 500 ? peVal.toFixed(1) : '—';
+          ps = psVal > 0 && psVal < 100 ? psVal.toFixed(1) : '—';
+        }
+      } catch(e) {}
+    }
+
+    const cells = row.querySelectorAll('td');
+    cells[1].innerHTML = `${curSymbol} ${quote.price.toFixed(2)}`;
+    cells[2].innerHTML = `€ ${priceEur.toFixed(2)}`;
+    cells[3].innerHTML = `<span class="${changePos?'pos-val':'neg-val'}">${changePos?'▲':'▼'} ${Math.abs(quote.change||0).toFixed(2)}%</span>`;
+    cells[4].textContent = pe;
+    cells[5].textContent = ps;
+  }
+}
+
+// ── RISICO-ANALYSE ───────────────────────────────────────────────
+const SECTOR_MAP = {
+  'AMAZON': 'E-commerce / Cloud', 'APPLIED DIGITAL': 'Datacenters / AI',
+  'ARISTA': 'Netwerk hardware', 'ASM INTERNATIONAL': 'Chip-machines',
+  'ASML': 'Chip-machines', 'BE SEMICONDUCTOR': 'Chip-machines',
+  'COREWEAVE': 'Cloud / AI', 'CROWDSTRIKE': 'Cybersecurity',
+  'LAM RESEARCH': 'Chip-machines', 'LIMBACH': 'Bouw / installatie',
+  'MARVELL': 'Chips', 'NEBIUS': 'Cloud / AI',
+  'SIEMENS ENERGY': 'Energie', 'VERTIV': 'Datacenter infra',
+  'VANECK SEMICONDUCTOR': 'Chips (ETF)', 'VANECK DEFENSE': 'Defensie (ETF)',
+  'ISHARES CORE S&P': 'Brede markt (ETF)'
+};
+
+function getSector(name) {
+  const upper = (name || '').toUpperCase();
+  for (const key in SECTOR_MAP) {
+    if (upper.includes(key)) return SECTOR_MAP[key];
+  }
+  return 'Overig';
+}
+
+function makebar(label, pct, color, valueLabel) {
+  var w = Math.min(Math.max(pct, 0), 100);
+  return '<div style="margin-bottom:14px">' +
+    '<div style="display:flex;justify-content:space-between;margin-bottom:5px">' +
+    '<span style="font-size:12px;color:#ccc">' + label + '</span>' +
+    '<span style="font-size:12px;font-weight:600;color:#aaa">' + valueLabel + '</span>' +
+    '</div>' +
+    '<div style="background:#0f1420;border-radius:5px;height:16px;width:100%;overflow:hidden">' +
+    '<div style="width:' + w + '%;height:100%;background:' + color + ';border-radius:5px"></div>' +
+    '</div>' +
+    '</div>';
+}
+
+function renderRisico() {
+  var rows = data.portfolio.filter(function(r) {
+    return r['Product'] && r['Product'].indexOf('CASH') === -1;
+  });
+
+  if (rows.length === 0) {
+    document.getElementById('riskConcentrationChart').innerHTML =
+      '<p style="color:#666;padding:10px">Upload eerst je Portfolio.csv bestand.</p>';
+    return;
+  }
+
+  var positions = [];
+  for (var i = 0; i < rows.length; i++) {
+    var r = rows[i];
+    var isin = r['Symbool/ISIN'] || '';
+    var aantal = pn(r['Aantal']);
+    var w = pn(r['Waarde in EUR']);
+    if (liveprices[isin] && liveprices[isin].priceEur) {
+      w = liveprices[isin].priceEur * aantal;
+    } else if (manualPrices[isin + '_eur_per_stuk']) {
+      w = manualPrices[isin + '_eur_per_stuk'] * aantal;
+    }
+    if (w <= 0) w = pn(r['Waarde in EUR']);
+    if (w <= 0) continue;
+
+    var currency = (r['Lokale waarde'] || 'EUR').trim();
+    var pe = (liveprices[isin] && liveprices[isin].pe) ? liveprices[isin].pe : null;
+    var name = r['Product'].trim();
+    var sector = getSector(name);
+    positions.push({ name: name, isin: isin, w: w, currency: currency, pe: pe, sector: sector });
+  }
+
+  positions.sort(function(a, b) { return b.w - a.w; });
+
+  var totaal = 0;
+  for (var i = 0; i < positions.length; i++) totaal += positions[i].w;
+
+  if (totaal <= 0) {
+    document.getElementById('riskConcentrationChart').innerHTML =
+      '<p style="color:#666;padding:10px">Geen data beschikbaar.</p>';
+    return;
+  }
+
+  // KPI's
+  var top1pct = (positions[0].w / totaal * 100);
+  var top3 = positions.slice(0, 3).reduce(function(s, p) { return s + p.w; }, 0) / totaal * 100;
+  var top5 = positions.slice(0, 5).reduce(function(s, p) { return s + p.w; }, 0) / totaal * 100;
+
+  document.getElementById('riskTop1').textContent = top1pct.toFixed(1) + '%';
+  document.getElementById('riskTop1Name').textContent = positions[0].name.slice(0, 20);
+  document.getElementById('riskTop3').textContent = top3.toFixed(1) + '%';
+  document.getElementById('riskTop5').textContent = top5.toFixed(1) + '%';
+  document.getElementById('riskCount').textContent = positions.length;
+
+  // Kleur top1 kaart
+  var top1Card = document.getElementById('kpiTop1Card');
+  if (top1pct > 25) {
+    top1Card.style.setProperty('--kpi-color', '#f87171');
+  } else if (top1pct > 15) {
+    top1Card.style.setProperty('--kpi-color', '#fbbf24');
+  } else {
+    top1Card.style.setProperty('--kpi-color', '#34d399');
+  }
+
+  // Waarschuwing
+  var banner = document.getElementById('riskWarningBanner');
+  if (top1pct > 25) {
+    banner.style.display = 'block';
+    banner.innerHTML = '<div style="background:#200a0a;border:1px solid #3a1010;border-radius:10px;padding:14px 18px;margin-bottom:20px">' +
+      '<strong style="color:#f87171">⚠️ Hoge concentratie:</strong> ' +
+      '<span style="color:#c89090">' + positions[0].name.slice(0,25) + ' is ' + top1pct.toFixed(1) + '% van je portfolio.</span></div>';
+  } else {
+    banner.style.display = 'none';
+  }
+
+  // Concentratie balken
+  var html = '';
+  for (var i = 0; i < positions.length; i++) {
+    var pct = positions[i].w / totaal * 100;
+    var color = pct > 20 ? '#f87171' : pct > 10 ? '#fbbf24' : '#4f80ff';
+    html += makebar(positions[i].name.slice(0, 25), pct, color, eur(positions[i].w) + ' (' + pct.toFixed(1) + '%)');
+  }
+  document.getElementById('riskConcentrationChart').innerHTML = '<div style="padding:8px 4px">' + html + '</div>';
+
+  // Valuta
+  var byCur = {};
+  for (var i = 0; i < positions.length; i++) {
+    var cur = positions[i].currency;
+    byCur[cur] = (byCur[cur] || 0) + positions[i].w;
+  }
+  var curColors = { EUR: '#4f80ff', USD: '#34d399', GBP: '#fbbf24' };
+  var curKeys = Object.keys(byCur).sort(function(a, b) { return byCur[b] - byCur[a]; });
+  var curHtml = '';
+  for (var i = 0; i < curKeys.length; i++) {
+    var cur = curKeys[i];
+    var pct = byCur[cur] / totaal * 100;
+    curHtml += makebar(cur, pct, curColors[cur] || '#888', eur(byCur[cur]) + ' — ' + pct.toFixed(1) + '%');
+  }
+  var usdImpact = (byCur['USD'] || 0) * 0.10;
+  curHtml += '<div style="margin-top:14px;padding:12px;background:#200a0a;border-radius:8px;font-size:12px;color:#c08080">' +
+    '💡 Bij 10% daling dollar: <strong style="color:#f87171">- ' + eur(usdImpact) + '</strong></div>';
+  document.getElementById('riskCurrencyChart').innerHTML = '<div style="padding:8px 4px">' + curHtml + '</div>';
+
+  // P/E verdeling
+  var peG = { 'Laag (<15)': 0, 'Gemiddeld (15-30)': 0, 'Hoog (30-60)': 0, 'Zeer hoog (>60)': 0, 'Onbekend': 0 };
+  var peColors = { 'Laag (<15)':'#34d399','Gemiddeld (15-30)':'#4f80ff','Hoog (30-60)':'#fbbf24','Zeer hoog (>60)':'#f87171','Onbekend':'#333' };
+  for (var i = 0; i < positions.length; i++) {
+    var pe = positions[i].pe;
+    if (!pe)        peG['Onbekend'] += positions[i].w;
+    else if (pe<15) peG['Laag (<15)'] += positions[i].w;
+    else if (pe<30) peG['Gemiddeld (15-30)'] += positions[i].w;
+    else if (pe<60) peG['Hoog (30-60)'] += positions[i].w;
+    else            peG['Zeer hoog (>60)'] += positions[i].w;
+  }
+  var peHtml = '';
+  var peKeys = Object.keys(peG);
+  for (var i = 0; i < peKeys.length; i++) {
+    var k = peKeys[i];
+    if (peG[k] <= 0) continue;
+    var pct = peG[k] / totaal * 100;
+    peHtml += makebar(k, pct, peColors[k], pct.toFixed(1) + '%');
+  }
+  document.getElementById('riskValuationChart').innerHTML = '<div style="padding:8px 4px">' + peHtml +
+    '<div style="margin-top:8px;font-size:11px;color:#555">Hoge P/E = duurder gewaardeerd, vaak volatieler</div></div>';
+
+  // Sector
+  var bySec = {};
+  for (var i = 0; i < positions.length; i++) {
+    var s = positions[i].sector;
+    bySec[s] = (bySec[s] || 0) + positions[i].w;
+  }
+  var secColors = ['#4f80ff','#34d399','#fbbf24','#f87171','#a78bfa','#38bdf8','#fb923c','#e879f9','#94a3b8'];
+  var secKeys = Object.keys(bySec).sort(function(a,b){ return bySec[b]-bySec[a]; });
+  var secHtml = '';
+  for (var i = 0; i < secKeys.length; i++) {
+    var pct = bySec[secKeys[i]] / totaal * 100;
+    secHtml += makebar(secKeys[i], pct, secColors[i % secColors.length], pct.toFixed(1) + '%');
+  }
+  document.getElementById('riskSectorChart').innerHTML = '<div style="padding:8px 4px">' + secHtml + '</div>';
+}
+
+
+function short(n) { return !n ? '' : n.length > 22 ? n.slice(0,20)+'…' : n; }
+function destroyChart(id) {
+  if (charts[id]) {
+    try { charts[id].destroy(); } catch(e) {}
+    delete charts[id];
+  }
+  // Also clear any lingering Chart.js instance on the canvas
+  const canvas = document.getElementById(id);
+  if (canvas) {
+    const existing = Chart.getChart(canvas);
+    if (existing) existing.destroy();
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// FIREBASE AUTH & CLOUD SYNC
+// ═══════════════════════════════════════════════════════════════════════════
+
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyCgVFnSKnqqqeXJWXEbcgvLW7ctNTYT_cc",
+  authDomain: "degiro-portfolio-ff862.firebaseapp.com",
+  projectId: "degiro-portfolio-ff862",
+  databaseURL: "https://degiro-portfolio-ff862-default-rtdb.europe-west1.firebasedatabase.app"
+};
+
+let firebaseUser = null;
+let firebaseToken = null;
+
+function firebaseLogin() {
+  const email = document.getElementById('firebaseEmail').value;
+  const password = document.getElementById('firebasePassword').value;
+
+  if (!email || !password) {
+    showFirebaseError('Email en wachtwoord invullen', 'firebaseError');
+    return;
+  }
+
+  const url = `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${FIREBASE_CONFIG.apiKey}`;
+
+  fetch(url, {
+    method: 'POST',
+    body: JSON.stringify({ email, password, returnSecureToken: true })
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.error) throw new Error(data.error.message);
+    
+    firebaseUser = { uid: data.localId, email: data.email };
+    firebaseToken = data.idToken;
+    
+    // Store refresh token for later
+    const refreshData = {
+      user: firebaseUser,
+      idToken: data.idToken,
+      refreshToken: data.refreshToken,
+      expiresIn: data.expiresIn
+    };
+    
+    localStorage.setItem('firebaseAuth', JSON.stringify(refreshData));
+    
+    console.log('✅ Login success');
+    
+    hideFirebaseAuth();
+    
+    setTimeout(() => {
+      loadCloudData();
+    }, 500);
+  })
+  .catch(err => {
+    console.error('Login error:', err);
+    showFirebaseError(err.message, 'firebaseError');
+  });
+}
+
+function refreshFirebaseToken() {
+  const authData = localStorage.getItem('firebaseAuth');
+  if (!authData) return Promise.reject('No auth data');
+
+  const data = JSON.parse(authData);
+  if (!data.refreshToken) return Promise.reject('No refresh token');
+
+  console.log('🔄 Attempting token refresh...');
+
+  const url = `https://securetoken.googleapis.com/v1/token?key=${FIREBASE_CONFIG.apiKey}`;
+
+  return fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded'
+    },
+    body: new URLSearchParams({
+      grant_type: 'refresh_token',
+      refresh_token: data.refreshToken
+    })
+  })
+  .then(r => r.json())
+  .then(newData => {
+    if (newData.error) {
+      console.error('❌ Refresh error:', newData.error);
+      throw new Error(newData.error);
+    }
+    
+    firebaseToken = newData.id_token;
+    
+    data.idToken = newData.id_token;
+    data.expiresIn = newData.expires_in;
+    
+    localStorage.setItem('firebaseAuth', JSON.stringify(data));
+    
+    console.log('✅ Token refreshed successfully');
+    return true;
+  })
+  .catch(err => {
+    console.error('❌ Token refresh failed:', err);
+    // Don't logout - just continue trying
+    return false;
+  });
+}
+
+function firebaseRegister() {
+  const email = document.getElementById('firebaseRegEmail').value;
+  const password = document.getElementById('firebaseRegPassword').value;
+
+  if (!email || !password || password.length < 6) {
+    showFirebaseError('Email en wachtwoord (min 6) invullen', 'firebaseRegError');
+    return;
+  }
+
+  const url = `https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${FIREBASE_CONFIG.apiKey}`;
+
+  fetch(url, {
+    method: 'POST',
+    body: JSON.stringify({ email, password, returnSecureToken: true })
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.error) throw new Error(data.error.message);
+    firebaseUser = { uid: data.localId, email: data.email };
+    firebaseToken = data.idToken;
+    const refreshData = {
+      user: firebaseUser,
+      idToken: data.idToken,
+      refreshToken: data.refreshToken,
+      expiresIn: data.expiresIn
+    };
+    localStorage.setItem('firebaseAuth', JSON.stringify(refreshData));
+    hideFirebaseAuth();
+    loadCloudData();
+  })
+  .catch(err => showFirebaseError(err.message, 'firebaseRegError'));
+}
+
+function showFirebaseLogin() {
+  document.getElementById('firebaseLoginForm').style.display = 'block';
+  document.getElementById('firebaseRegisterForm').style.display = 'none';
+}
+
+function showFirebaseRegister() {
+  document.getElementById('firebaseLoginForm').style.display = 'none';
+  document.getElementById('firebaseRegisterForm').style.display = 'block';
+}
+
+function showFirebaseError(msg, id) {
+  const el = document.getElementById(id);
+  el.textContent = msg;
+  el.style.display = 'block';
+  setTimeout(() => { el.style.display = 'none'; }, 3000);
+}
+
+function hideFirebaseAuth() {
+  document.getElementById('firebaseAuthOverlay').style.display = 'none';
+}
+
+function loadCloudData() {
+  if (!firebaseUser || !firebaseToken) {
+    console.log('❌ No user/token');
+    return;
+  }
+
+  const url = `${FIREBASE_CONFIG.databaseURL}/users/${firebaseUser.uid}/portfolio.json?auth=${firebaseToken}`;
+
+  console.log('📂 Loading from cloud...');
+
+  fetch(url)
+    .then(r => {
+      if (r.status === 401) {
+        console.log('🔄 Got 401, refreshing token...');
+        return refreshFirebaseToken().then(success => {
+          if (success) {
+            console.log('🔄 Retrying with new token...');
+            return loadCloudData();
+          } else {
+            console.log('⚠️ Refresh failed, showing upload screen');
+            return null;
+          }
+        });
+      }
+      return r.json();
+    })
+    .then(data => {
+      if (!data) return;
+      
+      if (data && data.files && (data.files.portfolio || data.files.transactions)) {
+        console.log('✅ Data found!');
+        files = data.files;
+        
+        setTimeout(() => {
+          try {
+            buildDashboard();
+            console.log('✅ Dashboard built');
+          } catch (e) {
+            console.error('❌ Build error:', e);
+          }
+        }, 100);
+      } else {
+        console.log('⚠️ No cloud data - upload CSV to get started');
+      }
+    })
+    .catch(err => {
+      console.error('❌ Load error:', err);
+    });
+}
+
+function saveDataToCloud() {
+  if (!firebaseUser || !firebaseToken) {
+    alert('Inloggen nodig');
+    return;
+  }
+
+  const cloudData = {
+    files: files,
+    timestamp: Date.now()
+  };
+
+  const url = `${FIREBASE_CONFIG.databaseURL}/users/${firebaseUser.uid}/portfolio.json?auth=${firebaseToken}`;
+
+  fetch(url, {
+    method: 'PUT',
+    body: JSON.stringify(cloudData)
+  })
+  .then(r => r.json())
+  .then(() => {
+    console.log('✅ Cloud saved');
+    alert('✅ Data opgeslagen in cloud!');
+  })
+  .catch(err => alert('❌ Error: ' + err.message));
+}
+
+function firebaseLogout() {
+  firebaseUser = null;
+  firebaseToken = null;
+  localStorage.clear();
+  location.reload();
+}
+
+// Check on load
+window.addEventListener('load', () => {
+  const authData = localStorage.getItem('firebaseAuth');
+  
+  if (authData) {
+    const data = JSON.parse(authData);
+    firebaseUser = data.user;
+    firebaseToken = data.idToken;
+    
+    console.log('✅ Session restored');
+    
+    hideFirebaseAuth();
+    loadCloudData();
+  }
+});
+
+</script>
+</body>
+</html>
