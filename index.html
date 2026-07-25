@@ -1140,7 +1140,13 @@ function saveManualPrice(isin, priceEur) {
 }
 function clearManualPrice(isin) {
   delete manualPrices[isin];
+  delete manualPrices[isin + '_currency'];
+  delete manualPrices[isin + '_eur_per_stuk'];
+  delete manualPrices[isin + '_eur'];
   localStorage.setItem('degiro_manual_prices', JSON.stringify(manualPrices));
+  renderDashboard();
+  const ap = document.getElementById('page-analyse');
+  if (ap && ap.style.display !== 'none') renderAnalyse();
 }
 
 // ── FINNHUB ───────────────────────────────────────────────────────
@@ -1336,6 +1342,8 @@ async function fetchTwelveStatsBatch(isins, key, getRate) {
 // Vaste ISIN→ticker mapping voor jouw portfolio (geen extra API call nodig)
 const ISIN_TICKER_MAP = {
   'US0231351067': 'AMZN',       // Amazon
+  'US02079K1079': 'GOOG',       // Alphabet Class C
+  'US02079K3059': 'GOOGL',      // Alphabet Class A
   'US0381692070': 'APLD',       // Applied Digital
   'US0404132054': 'ANET',       // Arista Networks
   'NL0000334118': 'ASM.AS',     // ASM International (Amsterdam)
@@ -1884,6 +1892,7 @@ function renderDashboard() {
              <input class="price-input" id="pi-${isin}" type="number" step="0.01" value="${savedLocal.toFixed(2)}" placeholder="koers ${localCurrency}" onclick="event.stopPropagation()">
              <button class="price-save-btn" onclick="event.stopPropagation();applyManualPrice('${isin}','${localCurrency}',${aantal})">✓</button>
              <button class="price-cancel-btn" onclick="event.stopPropagation();cancelPriceEdit('${isin}')">✕</button>
+             ${manualPrices[isin] ? `<button class="price-cancel-btn" style="background:#200a0a;color:#f87171;border:1px solid #4a1a1a" onclick="event.stopPropagation();clearManualPrice('${isin}')" title="Wis handmatige koers en gebruik API">🗑</button>` : ''}
            </span>
            <button class="price-edit-btn" id="peb-${isin}" onclick="event.stopPropagation();startPriceEdit('${isin}')" title="Koers aanpassen">✎</button>
          </td>`;
@@ -2012,6 +2021,7 @@ function renderDashboard() {
              <input class="price-input" id="pi-${isin}" type="number" step="0.01" value="${savedLocal2.toFixed(2)}" placeholder="koers ${localCurrency2}" onclick="event.stopPropagation()">
              <button class="price-save-btn" onclick="event.stopPropagation();applyManualPrice('${isin}','${localCurrency2}',${aantal})">✓</button>
              <button class="price-cancel-btn" onclick="event.stopPropagation();cancelPriceEdit('${isin}')">✕</button>
+             ${manualPrices[isin] ? `<button class="price-cancel-btn" style="background:#200a0a;color:#f87171;border:1px solid #4a1a1a" onclick="event.stopPropagation();clearManualPrice('${isin}')" title="Wis handmatige koers en gebruik API">🗑</button>` : ''}
            </span>
            <button class="price-edit-btn" id="peb-${isin}" onclick="event.stopPropagation();startPriceEdit('${isin}')" title="Koers aanpassen">✎</button>
          </td>`;
