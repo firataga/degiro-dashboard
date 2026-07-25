@@ -1244,6 +1244,7 @@ function clearManualPrice(isin) {
   delete manualPrices[isin + '_eur_per_stuk'];
   delete manualPrices[isin + '_eur'];
   localStorage.setItem('degiro_manual_prices', JSON.stringify(manualPrices));
+  saveDataToCloud(true);
   renderDashboard();
   const ap = document.getElementById('page-analyse');
   if (ap && ap.style.display !== 'none') renderAnalyse();
@@ -2204,6 +2205,7 @@ function applyManualPrice(isin, currency, aantal) {
   const doSaveAndRender = (eurPerStuk) => {
     manualPrices[isin + '_eur_per_stuk'] = eurPerStuk;
     localStorage.setItem('degiro_manual_prices', JSON.stringify(manualPrices));
+    saveDataToCloud(true);
     renderDashboard();
     const ap = document.getElementById('page-analyse');
     if (ap && ap.style.display !== 'none') renderAnalyse();
@@ -2289,6 +2291,7 @@ function updateInleg() {
   if (!isNaN(v) && v > 0) {
     manualInleg = v;
     localStorage.setItem("degiro_inleg", v);
+    saveDataToCloud(true);
     const s = document.getElementById("inlegSaved");
     s.textContent = "✓ Opgeslagen";
     setTimeout(() => { s.textContent = ""; }, 2500);
@@ -2323,11 +2326,13 @@ function saveManualInlegYear(year, value) {
     manualInlegByYear[year] = parseFloat(value);
   }
   localStorage.setItem('degiro_manual_inleg_year', JSON.stringify(manualInlegByYear));
+  saveDataToCloud(true);
   renderGroei();
 }
 function resetManualInlegYear(year) {
   delete manualInlegByYear[year];
   localStorage.setItem('degiro_manual_inleg_year', JSON.stringify(manualInlegByYear));
+  saveDataToCloud(true);
   renderGroei();
 }
 
@@ -3800,13 +3805,27 @@ function loadCloudData() {
       }
       return r.json();
     })
-    .then(data => {
-      if (!data) return;
+    .then(cloudData => {
+      if (!cloudData) return;
       
-      if (data && data.files && (data.files.portfolio || data.files.transactions)) {
+      if (cloudData && cloudData.files && (cloudData.files.portfolio || cloudData.files.transactions)) {
         console.log('✅ Data found!');
-        files = data.files;
-        
+        files = cloudData.files;
+
+        // Herstel handmatige instellingen uit cloud
+        if (cloudData.manualPrices && typeof cloudData.manualPrices === 'object') {
+          manualPrices = cloudData.manualPrices;
+          localStorage.setItem('degiro_manual_prices', JSON.stringify(manualPrices));
+        }
+        if (cloudData.manualInleg !== undefined && cloudData.manualInleg !== null) {
+          manualInleg = cloudData.manualInleg;
+          localStorage.setItem('degiro_manual_inleg', String(manualInleg));
+        }
+        if (cloudData.manualInlegByYear && typeof cloudData.manualInlegByYear === 'object') {
+          manualInlegByYear = cloudData.manualInlegByYear;
+          localStorage.setItem('degiro_manual_inleg_year', JSON.stringify(manualInlegByYear));
+        }
+
         setTimeout(() => {
           try {
             buildDashboard();
@@ -3824,15 +3843,18 @@ function loadCloudData() {
     });
 }
 
-function saveDataToCloud() {
+function saveDataToCloud(silent) {
   if (!firebaseUser || !firebaseToken) {
-    alert('Inloggen nodig');
+    if (!silent) alert('Inloggen nodig');
     return;
   }
 
   const cloudData = {
     files: files,
-    timestamp: Date.now()
+    timestamp: Date.now(),
+    manualPrices: manualPrices || {},
+    manualInleg: manualInleg,
+    manualInlegByYear: manualInlegByYear || {}
   };
 
   const url = `${FIREBASE_CONFIG.databaseURL}/users/${firebaseUser.uid}/portfolio.json?auth=${firebaseToken}`;
@@ -3844,9 +3866,9 @@ function saveDataToCloud() {
   .then(r => r.json())
   .then(() => {
     console.log('✅ Cloud saved');
-    alert('✅ Data opgeslagen in cloud!');
+    if (!silent) alert('✅ Data opgeslagen in cloud!');
   })
-  .catch(err => alert('❌ Error: ' + err.message));
+  .catch(err => { if (!silent) alert('❌ Error: ' + err.message); });
 }
 
 function firebaseLogout() {
