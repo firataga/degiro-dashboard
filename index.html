@@ -2187,6 +2187,14 @@ function cancelPriceEdit(isin) {
   document.getElementById('pe-' + isin).style.display = 'none';
   document.getElementById('peb-' + isin).style.display = '';
 }
+function startInlegEdit(year) {
+  const disp = document.getElementById('inleg-disp-' + year);
+  const edit = document.getElementById('inleg-edit-' + year);
+  if (disp) disp.style.display = 'none';
+  if (edit) { edit.style.display = 'flex'; }
+  const inp = document.getElementById('inleg-input-' + year);
+  if (inp) { inp.focus(); inp.select(); }
+}
 function applyManualPrice(isin, currency, aantal) {
   const v = parseFloat(document.getElementById('pi-' + isin).value);
   if (isNaN(v) || v <= 0) return;
@@ -2301,6 +2309,28 @@ function getBestWaardeEUR(r) {
 }
 
 // ── RENDEMENT & GROEI ──────────────────────────────────────────────
+let manualInlegByYear = {}; // year -> manual net deposit override
+(function loadManualInlegByYear() {
+  try {
+    const s = localStorage.getItem('degiro_manual_inleg_year');
+    if (s) manualInlegByYear = JSON.parse(s);
+  } catch(e) {}
+})();
+function saveManualInlegYear(year, value) {
+  if (value === null || value === undefined || value === '') {
+    delete manualInlegByYear[year];
+  } else {
+    manualInlegByYear[year] = parseFloat(value);
+  }
+  localStorage.setItem('degiro_manual_inleg_year', JSON.stringify(manualInlegByYear));
+  renderGroei();
+}
+function resetManualInlegYear(year) {
+  delete manualInlegByYear[year];
+  localStorage.setItem('degiro_manual_inleg_year', JSON.stringify(manualInlegByYear));
+  renderGroei();
+}
+
 function renderGroei() {
   if (!data.portfolio || !data.transactions) return;
 
@@ -2419,8 +2449,19 @@ function renderGroei() {
   });
 
   let totalInleg = 0;
-  Object.keys(depositsByYear).forEach(y => totalInleg += depositsByYear[y]);
-  Object.keys(withdrawalsByYear).forEach(y => totalInleg -= withdrawalsByYear[y]);
+  // Bereken totalInleg rekening houdend met handmatige jaar-overrides
+  if (Object.keys(manualInlegByYear).length > 0 && minYear <= maxYear) {
+    for (let y = minYear; y <= maxYear; y++) {
+      if (manualInlegByYear[y] !== undefined) {
+        totalInleg += manualInlegByYear[y];
+      } else {
+        totalInleg += (depositsByYear[y] || 0) - (withdrawalsByYear[y] || 0);
+      }
+    }
+  } else {
+    Object.keys(depositsByYear).forEach(y => totalInleg += depositsByYear[y]);
+    Object.keys(withdrawalsByYear).forEach(y => totalInleg -= withdrawalsByYear[y]);
+  }
   if (manualInleg !== null) totalInleg = manualInleg;
 
   const totalWinst = totalValue - totalInleg;
@@ -2460,7 +2501,9 @@ function renderGroei() {
       const dep = depositsByYear[y] || 0;
       const wd = withdrawalsByYear[y] || 0;
       const netDep = dep - wd;
-      cumInleg += netDep;
+      const isOverridden = manualInlegByYear[y] !== undefined;
+      const displayNetDep = isOverridden ? manualInlegByYear[y] : netDep;
+      cumInleg += displayNetDep;
 
       const realP = realizedByYear[y] || 0;
       const div = dividendsByYear[y] || 0;
@@ -2472,7 +2515,20 @@ function renderGroei() {
         <td><strong>${y}</strong></td>
         <td class="num">${dep > 0 ? eur(dep) : '—'}</td>
         <td class="num">${wd > 0 ? eur(wd) : '—'}</td>
-        <td class="num"><strong>${eur(netDep)}</strong></td>
+        <td class="num price-cell" id="inleg-cell-${y}">
+          <span class="price-display" id="inleg-disp-${y}" style="display:flex;align-items:center;gap:6px">
+            <strong style="${isOverridden ? 'color:var(--yellow)' : ''}">${eur(displayNetDep)}</strong>
+            ${isOverridden ? '<span class="live-chip manual" style="font-size:9px">✎ HANDMATIG</span>' : ''}
+            <button class="price-edit-btn" onclick="event.stopPropagation();startInlegEdit(${y})" title="Netto inleg aanpassen" style="margin-left:4px">✎</button>
+          </span>
+          <span id="inleg-edit-${y}" style="display:none;align-items:center;gap:6px">
+            <span style="font-size:11px;color:var(--text3)">€</span>
+            <input id="inleg-input-${y}" type="number" step="100" value="${displayNetDep.toFixed(0)}" style="width:100px;background:#0f1420;border:1px solid #252d45;border-radius:6px;padding:5px 8px;font-size:13px;color:#fff" onclick="event.stopPropagation()">
+            <button class="price-save-btn" onclick="event.stopPropagation();saveManualInlegYear(${y}, document.getElementById('inleg-input-${y}').value)">✓</button>
+            <button class="price-cancel-btn" onclick="event.stopPropagation();document.getElementById('inleg-disp-${y}').style.display='';document.getElementById('inleg-edit-${y}').style.display='none'">✕</button>
+            ${isOverridden ? `<button class="price-cancel-btn" style="background:#200a0a;color:#f87171;border:1px solid #4a1a1a" onclick="event.stopPropagation();resetManualInlegYear(${y})" title="Wis handmatige waarde">🗑</button>` : ''}
+          </span>
+        </td>
         <td class="num">${eur(cumInleg)}</td>
         <td class="num ${realP >= 0 ? 'pos-val' : 'neg-val'}">${eur(realP)}</td>
         <td class="num ${div > 0 ? 'pos-val' : ''}">${div > 0 ? eur(div) : '—'}</td>
