@@ -564,6 +564,10 @@ td.num strong { color: var(--text1); font-weight: 600; }
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
     <span class="nav-label">Analyse</span>
   </div>
+  <div class="nav-item" onclick="showPage('groei', this)">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+    <span class="nav-label">Rendement &amp; Groei</span>
+  </div>
   <div class="nav-item" onclick="showPage('verkopen', this)">
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
     <span class="nav-label">Verkochte Aandelen</span>
@@ -1028,6 +1032,102 @@ td.num strong { color: var(--text1); font-weight: 600; }
       <div class="card" style="margin-top:16px">
         <div class="card-header"><h3>Sector-concentratie (indicatief)</h3><small>Op basis van bedrijfsnaam herkenning</small></div>
         <div id="riskSectorChart" style="padding:20px"><div style="color:#555;font-size:12px">Laden...</div></div>
+      </div>
+    </div>
+
+    <!-- PAGE: RENDEMENT & GROEI -->
+    <div id="page-groei" style="display:none">
+      <div class="page-header">
+        <div class="page-title">Rendement &amp; Groei</div>
+        <div class="page-sub">Groeianalyse en totaal rendement exclusief eigen inleg</div>
+      </div>
+
+      <!-- KPI Cards -->
+      <div class="kpi-grid">
+        <div class="kpi" style="--kpi-color:#34d399;--kpi-bg:#081a10;--kpi-border:#0f2a1a">
+          <div class="kpi-icon">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+          </div>
+          <div class="kpi-label">Zuivere Winst / Rendement</div>
+          <div class="kpi-value" id="kpiGroeiWinst">—</div>
+          <div class="kpi-footer" id="kpiGroeiWinstFooter"><span class="kpi-sub">Exclusief eigen inleg</span></div>
+        </div>
+
+        <div class="kpi" style="--kpi-color:#4f80ff;--kpi-bg:#0e1a35;--kpi-border:#1e3060">
+          <div class="kpi-icon">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#4f80ff" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+          </div>
+          <div class="kpi-label">Gemiddelde Jaarlijkse Groei (CAGR)</div>
+          <div class="kpi-value" id="kpiGroeiCAGR">—</div>
+          <div class="kpi-footer"><span class="kpi-sub" id="kpiGroeiPeriode">Per jaar gem.</span></div>
+        </div>
+
+        <div class="kpi" style="--kpi-color:#fbbf24;--kpi-bg:#1a1200;--kpi-border:#2a1e00">
+          <div class="kpi-icon">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+          </div>
+          <div class="kpi-label">Netto Ingelegd Saldo</div>
+          <div class="kpi-value" id="kpiGroeiInleg">—</div>
+          <div class="kpi-footer"><span class="kpi-sub">Stortingen minus opnames</span></div>
+        </div>
+
+        <div class="kpi" style="--kpi-color:#a78bfa;--kpi-bg:#140e25;--kpi-border:#22184a">
+          <div class="kpi-icon">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+          </div>
+          <div class="kpi-label">Gerealiseerd Resultaat</div>
+          <div class="kpi-value" id="kpiGroeiGerealiseerd">—</div>
+          <div class="kpi-footer"><span class="kpi-sub">Winst op verkoop &amp; dividend</span></div>
+        </div>
+      </div>
+
+      <!-- Jaarlijkse Groei Tabel -->
+      <div class="card" style="margin-bottom:20px">
+        <div class="card-header">
+          <h3>Jaarlijkse Groei &amp; Rendement (Exclusief Eigen Inleg)</h3>
+          <small>Overzicht van inleg, gerealiseerd resultaat en zuivere groei per kalenderjaar</small>
+        </div>
+        <div class="tbl-wrap">
+          <table id="tblGroeiJaar">
+            <thead>
+              <tr>
+                <th>Jaar</th>
+                <th class="num">Stortingen (iDEAL)</th>
+                <th class="num">Opnames</th>
+                <th class="num">Netto Inleg (Jaar)</th>
+                <th class="num">Cumulatieve Inleg</th>
+                <th class="num">Gerealiseerde Winst</th>
+                <th class="num">Dividenden</th>
+                <th class="num">Winst / Resultaat (EUR)</th>
+                <th class="num">Rendement % (excl. inleg)</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Rendement per Positie Tabel -->
+      <div class="card">
+        <div class="card-header">
+          <h3>Rendement per Positie (Exclusief Eigen Aankoopinleg)</h3>
+          <small>Zuivere winst en percentage groei per aandeel / ETF in je huidige portfolio</small>
+        </div>
+        <div class="tbl-wrap">
+          <table id="tblGroeiPosities">
+            <thead>
+              <tr>
+                <th>Product</th>
+                <th class="num">Aantal</th>
+                <th class="num">Eigen Inleg (Kostprijs)</th>
+                <th class="num">Huidige Waarde</th>
+                <th class="num">Netto Winst (EUR)</th>
+                <th class="num">Groei % (excl. inleg)</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
       </div>
     </div>
 
@@ -1577,7 +1677,7 @@ function buildDashboard() {
   document.getElementById('debugBtn').style.display = 'flex';
   document.getElementById('testTwelveBtn').style.display = 'flex';
   document.getElementById('topbarInfo') && (document.getElementById('topbarInfo').innerHTML = '');
-  renderDashboard(); renderVerkopen(); renderTransacties();
+  renderDashboard(); renderGroei(); renderVerkopen(); renderTransacties();
   tick();
   if (hasNewUpload) {
     saveDataToCloud();
@@ -2200,6 +2300,222 @@ function getBestWaardeEUR(r) {
   return pn(r['Waarde in EUR']);
 }
 
+// ── RENDEMENT & GROEI ──────────────────────────────────────────────
+function renderGroei() {
+  if (!data.portfolio || !data.transactions) return;
+
+  const depositsByYear = {};
+  const withdrawalsByYear = {};
+  const dividendsByYear = {};
+
+  let minYear = 2099, maxYear = 1900;
+  const nowYear = new Date().getFullYear();
+
+  if (data.account && data.account.length > 0) {
+    data.account.forEach(r => {
+      const datum = r['Datum'] || '';
+      if (!datum) return;
+      const parts = datum.split('-');
+      if (parts.length < 3) return;
+      const y = parseInt(parts[2], 10);
+      if (isNaN(y) || y < 2000 || y > 2100) return;
+
+      if (y < minYear) minYear = y;
+      if (y > maxYear) maxYear = y;
+
+      const desc = (r['Omschrijving'] || '').toLowerCase();
+      
+      let amount = 0;
+      const keys = Object.keys(r);
+      for (let i = 0; i < keys.length; i++) {
+        if (r[keys[i]] === 'EUR' && keys[i+1]) {
+          amount = pn(r[keys[i+1]]);
+          if (amount !== 0) break;
+        }
+      }
+
+      if (desc.includes('ideal') || desc.includes('storting') || desc.includes('deposit')) {
+        if (amount > 0) depositsByYear[y] = (depositsByYear[y] || 0) + amount;
+      } else if (desc.includes('terugstorting') || desc.includes('withdrawal') || desc.includes('opname')) {
+        if (amount < 0) withdrawalsByYear[y] = (withdrawalsByYear[y] || 0) + Math.abs(amount);
+      } else if (desc.includes('dividend')) {
+        if (amount > 0) dividendsByYear[y] = (dividendsByYear[y] || 0) + amount;
+      }
+    });
+  }
+
+  data.transactions.forEach(r => {
+    const datum = r._datum || '';
+    const parts = datum.split('-');
+    if (parts.length === 3) {
+      const y = parseInt(parts[2], 10);
+      if (!isNaN(y) && y >= 2000 && y <= 2100) {
+        if (y < minYear) minYear = y;
+        if (y > maxYear) maxYear = y;
+      }
+    }
+  });
+
+  if (minYear > maxYear) { minYear = nowYear; maxYear = nowYear; }
+
+  let stockEUR = 0, cashEUR = 0;
+  data.portfolio.forEach(r => {
+    const isin = r['Symbool/ISIN'] || '';
+    const aantal = pn(r['Aantal']);
+    if ((r['Product'] || '').includes('CASH')) {
+      cashEUR += pn(r['Waarde in EUR']);
+    } else if (r['Product']) {
+      stockEUR += getBestWaardeEUR(r);
+    }
+  });
+  const totalValue = stockEUR + cashEUR;
+
+  let totalRealized = 0;
+  const realizedByYear = {};
+
+  const txByIsin = {};
+  data.transactions.forEach(r => {
+    const isin = r['ISIN'] || r._product;
+    if (!txByIsin[isin]) txByIsin[isin] = [];
+    txByIsin[isin].push(r);
+  });
+
+  const toISO = d => { const p = d.split('-'); return p.length === 3 ? `${p[2]}-${p[1]}-${p[0]}` : d; };
+
+  Object.keys(txByIsin).forEach(isin => {
+    const txs = txByIsin[isin];
+    const buys = txs.filter(r => r._aantal > 0).sort((a,b) => toISO(a._datum).localeCompare(toISO(b._datum)));
+    const sells = txs.filter(r => r._aantal < 0).sort((a,b) => toISO(a._datum).localeCompare(toISO(b._datum)));
+
+    const queue = buys.map(r => ({
+      datum: r._datum,
+      koersEUR: Math.abs(r._totaal) / r._aantal,
+      rest: r._aantal
+    }));
+
+    sells.forEach(s => {
+      let qty = Math.abs(s._aantal);
+      const revenue = Math.abs(s._totaal);
+      let cost = 0;
+
+      for (let i = 0; i < queue.length && qty > 0; i++) {
+        if (queue[i].rest > 0) {
+          const take = Math.min(qty, queue[i].rest);
+          cost += take * queue[i].koersEUR;
+          queue[i].rest -= take;
+          qty -= take;
+        }
+      }
+
+      const profit = revenue - cost - (s._kosten ? Math.abs(s._kosten) : 0);
+      totalRealized += profit;
+
+      const parts = s._datum.split('-');
+      if (parts.length === 3) {
+        const y = parseInt(parts[2], 10);
+        if (!isNaN(y)) realizedByYear[y] = (realizedByYear[y] || 0) + profit;
+      }
+    });
+  });
+
+  let totalInleg = 0;
+  Object.keys(depositsByYear).forEach(y => totalInleg += depositsByYear[y]);
+  Object.keys(withdrawalsByYear).forEach(y => totalInleg -= withdrawalsByYear[y]);
+  if (manualInleg !== null) totalInleg = manualInleg;
+
+  const totalWinst = totalValue - totalInleg;
+  const totalWinstPct = totalInleg > 0 ? (totalWinst / totalInleg * 100) : 0;
+
+  const numYears = Math.max(1, (maxYear - minYear) + 1);
+  let cagr = 0;
+  if (totalInleg > 0 && totalValue > 0 && numYears > 0) {
+    cagr = (Math.pow(totalValue / totalInleg, 1 / numYears) - 1) * 100;
+  }
+
+  const winstEl = document.getElementById('kpiGroeiWinst');
+  if (winstEl) {
+    const posWinst = totalWinst >= 0;
+    winstEl.textContent = eur(Math.abs(totalWinst));
+    winstEl.style.color = posWinst ? 'var(--green)' : 'var(--red)';
+    document.getElementById('kpiGroeiWinstFooter').innerHTML =
+      `<span class="pill ${posWinst?'pos':'neg'}">${posWinst?'▲':'▼'} ${Math.abs(totalWinstPct).toFixed(2)}%</span><span class="kpi-sub" style="margin-left:6px">excl. eigen inleg</span>`;
+
+    document.getElementById('kpiGroeiCAGR').textContent = (cagr >= 0 ? '+' : '') + cagr.toFixed(2) + '%';
+    document.getElementById('kpiGroeiCAGR').style.color = cagr >= 0 ? 'var(--green)' : 'var(--red)';
+    document.getElementById('kpiGroeiPeriode').textContent = `Over ${numYears} ${numYears === 1 ? 'jaar' : 'jaar'} (${minYear}–${maxYear})`;
+
+    document.getElementById('kpiGroeiInleg').textContent = eur(totalInleg);
+    
+    const realEl = document.getElementById('kpiGroeiGerealiseerd');
+    realEl.textContent = eur(Math.abs(totalRealized));
+    realEl.style.color = totalRealized >= 0 ? 'var(--green)' : 'var(--red)';
+  }
+
+  const tbodyJaar = document.querySelector('#tblGroeiJaar tbody');
+  if (tbodyJaar) {
+    tbodyJaar.innerHTML = '';
+
+    let cumInleg = 0;
+    for (let y = minYear; y <= maxYear; y++) {
+      const dep = depositsByYear[y] || 0;
+      const wd = withdrawalsByYear[y] || 0;
+      const netDep = dep - wd;
+      cumInleg += netDep;
+
+      const realP = realizedByYear[y] || 0;
+      const div = dividendsByYear[y] || 0;
+      const resultYear = realP + div;
+      const retPctYear = cumInleg > 0 ? (resultYear / cumInleg * 100) : 0;
+
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><strong>${y}</strong></td>
+        <td class="num">${dep > 0 ? eur(dep) : '—'}</td>
+        <td class="num">${wd > 0 ? eur(wd) : '—'}</td>
+        <td class="num"><strong>${eur(netDep)}</strong></td>
+        <td class="num">${eur(cumInleg)}</td>
+        <td class="num ${realP >= 0 ? 'pos-val' : 'neg-val'}">${eur(realP)}</td>
+        <td class="num ${div > 0 ? 'pos-val' : ''}">${div > 0 ? eur(div) : '—'}</td>
+        <td class="num ${resultYear >= 0 ? 'pos-val' : 'neg-val'}"><strong>${eur(resultYear)}</strong></td>
+        <td class="num"><span class="pill ${retPctYear >= 0 ? 'pos' : 'neg'}">${retPctYear >= 0 ? '+' : ''}${retPctYear.toFixed(2)}%</span></td>
+      `;
+      tbodyJaar.appendChild(tr);
+    }
+  }
+
+  const tbodyPos = document.querySelector('#tblGroeiPosities tbody');
+  if (tbodyPos) {
+    tbodyPos.innerHTML = '';
+    const gak = calcGAK();
+
+    data.portfolio.forEach(r => {
+      const isin = r['Symbool/ISIN'] || '';
+      const name = r['Product'] || '';
+      const aantal = pn(r['Aantal']);
+      if (!name || name.includes('CASH') || aantal <= 0) return;
+
+      const gakP = (gak[isin] && gak[isin].gak) || 0;
+      const eigenInleg = gakP * aantal;
+
+      const waardeEUR = getBestWaardeEUR(r);
+      const netProfit = eigenInleg > 0 ? (waardeEUR - eigenInleg) : 0;
+      const profitPct = eigenInleg > 0 ? (netProfit / eigenInleg * 100) : 0;
+      const isPos = netProfit >= 0;
+
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td class="td-product"><strong>${name}</strong><span>${isin}</span></td>
+        <td class="num">${aantal.toLocaleString('nl-NL',{maximumFractionDigits:0})}</td>
+        <td class="num">${eigenInleg > 0 ? eur(eigenInleg) : '—'}</td>
+        <td class="num"><strong>${eur(waardeEUR)}</strong></td>
+        <td class="num ${isPos ? 'pos-val' : 'neg-val'}"><strong>${eur(netProfit)}</strong></td>
+        <td class="num"><span class="pill ${isPos ? 'pos' : 'neg'}">${profitPct >= 0 ? '+' : ''}${profitPct.toFixed(2)}%</span></td>
+      `;
+      tbodyPos.appendChild(tr);
+    });
+  }
+}
+
 function renderAnalyse() {
   const rows = data.portfolio.filter(r => r['Product'] && !r['Product'].includes('CASH'));
   const gak = calcGAK();
@@ -2584,20 +2900,23 @@ function renderTransacties() {
 }
 
 // ── NAV ───────────────────────────────────────────────────────────
-const pageNames = { dashboard:'Dashboard', analyse:'Analyse', verkopen:'Verkochte Aandelen', transacties:'Alle Transacties', kosten:'Transactiekosten', risico:'Risico-analyse', watchlist:'Watchlist' };
+const pageNames = { dashboard:'Dashboard', groei:'Rendement & Groei', analyse:'Analyse', verkopen:'Verkochte Aandelen', transacties:'Alle Transacties', kosten:'Transactiekosten', risico:'Risico-analyse', watchlist:'Watchlist' };
 function showPage(name, el) {
   // Watchlist werkt ook zonder CSV upload
   if (name === 'watchlist') {
     document.getElementById('uploadScreen').style.display = 'none';
     document.getElementById('dashContent').classList.add('visible');
   }
-  ['dashboard','analyse','verkopen','transacties','kosten','risico','watchlist'].forEach(p => {
+  ['dashboard','groei','analyse','verkopen','transacties','kosten','risico','watchlist'].forEach(p => {
     document.getElementById('page-'+p).style.display = p === name ? 'block' : 'none';
   });
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   el.classList.add('active');
   document.getElementById('bcPage').textContent = pageNames[name] || name;
   closeSidebarOnMobile();
+  if (name === 'groei') {
+    renderGroei();
+  }
   if (name === 'analyse' && data.portfolio.length > 0) {
     renderAnalyse();
   }
