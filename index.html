@@ -2293,9 +2293,14 @@ function updateInleg() {
     localStorage.setItem("degiro_inleg", v);
     saveDataToCloud(true);
     const s = document.getElementById("inlegSaved");
-    s.textContent = "✓ Opgeslagen";
-    setTimeout(() => { s.textContent = ""; }, 2500);
+    if (s) {
+      s.textContent = "✓ Opgeslagen";
+      setTimeout(() => { s.textContent = ""; }, 2500);
+    }
     renderDashboard();
+    renderGroei();
+    const ap = document.getElementById('page-analyse');
+    if (ap && ap.style.display !== 'none') renderAnalyse();
   }
 }
 
@@ -3874,7 +3879,9 @@ function saveDataToCloud(silent) {
 function firebaseLogout() {
   firebaseUser = null;
   firebaseToken = null;
-  localStorage.clear();
+  // Verwijder alleen authenticatie‑gegevens, houd handmatige waarden en cloud‑instellingen
+  localStorage.removeItem('firebaseAuth');
+  // Andere instellingen blijven bewaard zodat handmatige inleg bewaard blijft
   location.reload();
 }
 
