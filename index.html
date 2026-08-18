@@ -2562,18 +2562,18 @@ function renderGroei() {
       let resultYear = realP + div;
       let retPctYear = 0;
 
-      if (yeVal > 0) {
+      if (hasManualYE || (y === nowYear && yeVal > 0)) {
         // Formule voor totaal jaarrendement inclusief ongerealiseerde koerswinst:
         // Winst = Eindejaarswaarde - Beginjaarswaarde - Netto inleg van dat jaar
-        // Waarbij Beginjaarswaarde = Eindejaarswaarde van het voorgaande jaar (of 0 in het eerste jaar)
-        const startVal = prevYearEndVal;
+        // Als er eerdere jaren geen eindejaarswaarde was, is de beginwaarde gelijk aan cumulatieve inleg tot vorig jaar + cumulatieve winsten
+        const startVal = prevYearEndVal > 0 ? prevYearEndVal : (cumInleg - displayNetDep);
         resultYear = yeVal - startVal - displayNetDep;
         const baseCapital = startVal + displayNetDep;
         retPctYear = baseCapital > 0 ? (resultYear / baseCapital * 100) : (cumInleg > 0 ? (resultYear / cumInleg * 100) : 0);
         prevYearEndVal = yeVal;
       } else {
         retPctYear = cumInleg > 0 ? (resultYear / cumInleg * 100) : 0;
-        if (prevYearEndVal > 0) prevYearEndVal += displayNetDep + resultYear;
+        prevYearEndVal = (prevYearEndVal > 0 ? prevYearEndVal : (cumInleg - displayNetDep)) + displayNetDep + resultYear;
       }
 
       const isRetPos = resultYear >= 0;
