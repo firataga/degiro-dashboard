@@ -1096,10 +1096,11 @@ td.num strong { color: var(--text1); font-weight: 600; }
                 <th class="num">Opnames</th>
                 <th class="num">Netto Inleg (Jaar)</th>
                 <th class="num">Cumulatieve Inleg</th>
+                <th class="num">Eindejaarswaarde</th>
                 <th class="num">Gerealiseerde Winst</th>
                 <th class="num">Dividenden</th>
                 <th class="num">Winst / Resultaat (EUR)</th>
-                <th class="num">Rendement % (excl. inleg)</th>
+                <th class="num">Rendement %</th>
               </tr>
             </thead>
             <tbody></tbody>
@@ -2318,12 +2319,17 @@ function getBestWaardeEUR(r) {
 
 // ── RENDEMENT & GROEI ──────────────────────────────────────────────
 let manualInlegByYear = {}; // year -> manual net deposit override
-(function loadManualInlegByYear() {
+let manualYearEndValues = {}; // year -> manual portfolio value at end of year
+
+(function loadGroeiOverrides() {
   try {
     const s = localStorage.getItem('degiro_manual_inleg_year');
     if (s) manualInlegByYear = JSON.parse(s);
+    const s2 = localStorage.getItem('degiro_manual_yearend');
+    if (s2) manualYearEndValues = JSON.parse(s2);
   } catch(e) {}
 })();
+
 function saveManualInlegYear(year, value) {
   if (value === null || value === undefined || value === '') {
     delete manualInlegByYear[year];
@@ -2334,11 +2340,39 @@ function saveManualInlegYear(year, value) {
   saveDataToCloud(true);
   renderGroei();
 }
+
 function resetManualInlegYear(year) {
   delete manualInlegByYear[year];
   localStorage.setItem('degiro_manual_inleg_year', JSON.stringify(manualInlegByYear));
   saveDataToCloud(true);
   renderGroei();
+}
+
+function saveManualYearEnd(year, value) {
+  if (value === null || value === undefined || value === '') {
+    delete manualYearEndValues[year];
+  } else {
+    manualYearEndValues[year] = parseFloat(value);
+  }
+  localStorage.setItem('degiro_manual_yearend', JSON.stringify(manualYearEndValues));
+  saveDataToCloud(true);
+  renderGroei();
+}
+
+function resetManualYearEnd(year) {
+  delete manualYearEndValues[year];
+  localStorage.setItem('degiro_manual_yearend', JSON.stringify(manualYearEndValues));
+  saveDataToCloud(true);
+  renderGroei();
+}
+
+function startYearEndEdit(year) {
+  const disp = document.getElementById('yearend-disp-' + year);
+  const edit = document.getElementById('yearend-edit-' + year);
+  if (disp) disp.style.display = 'none';
+  if (edit) edit.style.display = 'flex';
+  const inp = document.getElementById('yearend-input-' + year);
+  if (inp) { inp.focus(); inp.select(); }
 }
 
 function renderGroei() {
@@ -2507,6 +2541,8 @@ function renderGroei() {
     tbodyJaar.innerHTML = '';
 
     let cumInleg = 0;
+    let prevYearEndVal = 0;
+
     for (let y = minYear; y <= maxYear; y++) {
       const dep = depositsByYear[y] || 0;
       const wd = withdrawalsByYear[y] || 0;
@@ -2515,10 +2551,32 @@ function renderGroei() {
       const displayNetDep = isOverridden ? manualInlegByYear[y] : netDep;
       cumInleg += displayNetDep;
 
+      const hasManualYE = manualYearEndValues[y] !== undefined;
+      // Default year end value for current year is totalValue if current year
+      const defaultYE = (y === nowYear) ? totalValue : 0;
+      const yeVal = hasManualYE ? manualYearEndValues[y] : defaultYE;
+
       const realP = realizedByYear[y] || 0;
       const div = dividendsByYear[y] || 0;
-      const resultYear = realP + div;
-      const retPctYear = cumInleg > 0 ? (resultYear / cumInleg * 100) : 0;
+
+      let resultYear = realP + div;
+      let retPctYear = 0;
+
+      if (yeVal > 0) {
+        // Formule voor totaal jaarrendement inclusief ongerealiseerde koerswinst:
+        // Winst = Eindejaarswaarde - Beginjaarswaarde - Netto inleg van dat jaar
+        // Waarbij Beginjaarswaarde = Eindejaarswaarde van het voorgaande jaar (of 0 in het eerste jaar)
+        const startVal = prevYearEndVal;
+        resultYear = yeVal - startVal - displayNetDep;
+        const baseCapital = startVal + displayNetDep;
+        retPctYear = baseCapital > 0 ? (resultYear / baseCapital * 100) : (cumInleg > 0 ? (resultYear / cumInleg * 100) : 0);
+        prevYearEndVal = yeVal;
+      } else {
+        retPctYear = cumInleg > 0 ? (resultYear / cumInleg * 100) : 0;
+        if (prevYearEndVal > 0) prevYearEndVal += displayNetDep + resultYear;
+      }
+
+      const isRetPos = resultYear >= 0;
 
       const tr = document.createElement('tr');
       tr.innerHTML = `
@@ -2526,12 +2584,12 @@ function renderGroei() {
         <td class="num">${dep > 0 ? eur(dep) : '—'}</td>
         <td class="num">${wd > 0 ? eur(wd) : '—'}</td>
         <td class="num price-cell" id="inleg-cell-${y}">
-          <span class="price-display" id="inleg-disp-${y}" style="display:flex;align-items:center;gap:6px">
+          <span class="price-display" id="inleg-disp-${y}" style="display:flex;align-items:center;justify-content:flex-end;gap:6px">
             <strong style="${isOverridden ? 'color:var(--yellow)' : ''}">${eur(displayNetDep)}</strong>
             ${isOverridden ? '<span class="live-chip manual" style="font-size:9px">✎ HANDMATIG</span>' : ''}
             <button class="price-edit-btn" onclick="event.stopPropagation();startInlegEdit(${y})" title="Netto inleg aanpassen" style="margin-left:4px">✎</button>
           </span>
-          <span id="inleg-edit-${y}" style="display:none;align-items:center;gap:6px">
+          <span id="inleg-edit-${y}" style="display:none;align-items:center;gap:6px;justify-content:flex-end">
             <span style="font-size:11px;color:var(--text3)">€</span>
             <input id="inleg-input-${y}" type="number" step="100" value="${displayNetDep.toFixed(0)}" style="width:100px;background:#0f1420;border:1px solid #252d45;border-radius:6px;padding:5px 8px;font-size:13px;color:#fff" onclick="event.stopPropagation()">
             <button class="price-save-btn" onclick="event.stopPropagation();saveManualInlegYear(${y}, document.getElementById('inleg-input-${y}').value)">✓</button>
@@ -2540,10 +2598,24 @@ function renderGroei() {
           </span>
         </td>
         <td class="num">${eur(cumInleg)}</td>
+        <td class="num price-cell" id="yearend-cell-${y}">
+          <span class="price-display" id="yearend-disp-${y}" style="display:flex;align-items:center;justify-content:flex-end;gap:6px">
+            <strong style="${hasManualYE ? 'color:#a78bfa' : ''}">${yeVal > 0 ? eur(yeVal) : '—'}</strong>
+            ${hasManualYE ? '<span class="live-chip manual" style="font-size:9px">✎ HANDMATIG</span>' : ''}
+            <button class="price-edit-btn" onclick="event.stopPropagation();startYearEndEdit(${y})" title="Eindejaarswaarde aanpassen" style="margin-left:4px">✎</button>
+          </span>
+          <span id="yearend-edit-${y}" style="display:none;align-items:center;gap:6px;justify-content:flex-end">
+            <span style="font-size:11px;color:var(--text3)">€</span>
+            <input id="yearend-input-${y}" type="number" step="500" value="${yeVal > 0 ? yeVal.toFixed(0) : ''}" placeholder="Eindwaarde" style="width:105px;background:#0f1420;border:1px solid #252d45;border-radius:6px;padding:5px 8px;font-size:13px;color:#fff" onclick="event.stopPropagation()">
+            <button class="price-save-btn" onclick="event.stopPropagation();saveManualYearEnd(${y}, document.getElementById('yearend-input-${y}').value)">✓</button>
+            <button class="price-cancel-btn" onclick="event.stopPropagation();document.getElementById('yearend-disp-${y}').style.display='';document.getElementById('yearend-edit-${y}').style.display='none'">✕</button>
+            ${hasManualYE ? `<button class="price-cancel-btn" style="background:#200a0a;color:#f87171;border:1px solid #4a1a1a" onclick="event.stopPropagation();resetManualYearEnd(${y})" title="Wis handmatige waarde">🗑</button>` : ''}
+          </span>
+        </td>
         <td class="num ${realP >= 0 ? 'pos-val' : 'neg-val'}">${eur(realP)}</td>
         <td class="num ${div > 0 ? 'pos-val' : ''}">${div > 0 ? eur(div) : '—'}</td>
-        <td class="num ${resultYear >= 0 ? 'pos-val' : 'neg-val'}"><strong>${eur(resultYear)}</strong></td>
-        <td class="num"><span class="pill ${retPctYear >= 0 ? 'pos' : 'neg'}">${retPctYear >= 0 ? '+' : ''}${retPctYear.toFixed(2)}%</span></td>
+        <td class="num ${isRetPos ? 'pos-val' : 'neg-val'}"><strong>${eur(resultYear)}</strong></td>
+        <td class="num"><span class="pill ${isRetPos ? 'pos' : 'neg'}">${isRetPos ? '+' : ''}${retPctYear.toFixed(2)}%</span></td>
       `;
       tbodyJaar.appendChild(tr);
     }
@@ -2552,7 +2624,7 @@ function renderGroei() {
   const tbodyPos = document.querySelector('#tblGroeiPosities tbody');
   if (tbodyPos) {
     tbodyPos.innerHTML = '';
-    const gak = calcGAK();
+    const gakObj = calcGAK();
 
     data.portfolio.forEach(r => {
       const isin = r['Symbool/ISIN'] || '';
@@ -2560,7 +2632,8 @@ function renderGroei() {
       const aantal = pn(r['Aantal']);
       if (!name || name.includes('CASH') || aantal <= 0) return;
 
-      const gakP = (gak[isin] && gak[isin].gak) || 0;
+      const gakInfo = getGAK(gakObj, name, isin);
+      const gakP = gakInfo.aantal > 0 ? (gakInfo.totaalBetaald / gakInfo.aantal) : 0;
       const eigenInleg = gakP * aantal;
 
       const waardeEUR = getBestWaardeEUR(r);
@@ -3830,6 +3903,10 @@ function loadCloudData() {
           manualInlegByYear = cloudData.manualInlegByYear;
           localStorage.setItem('degiro_manual_inleg_year', JSON.stringify(manualInlegByYear));
         }
+        if (cloudData.manualYearEndValues && typeof cloudData.manualYearEndValues === 'object') {
+          manualYearEndValues = cloudData.manualYearEndValues;
+          localStorage.setItem('degiro_manual_yearend', JSON.stringify(manualYearEndValues));
+        }
 
         setTimeout(() => {
           try {
@@ -3859,7 +3936,8 @@ function saveDataToCloud(silent) {
     timestamp: Date.now(),
     manualPrices: manualPrices || {},
     manualInleg: manualInleg,
-    manualInlegByYear: manualInlegByYear || {}
+    manualInlegByYear: manualInlegByYear || {},
+    manualYearEndValues: manualYearEndValues || {}
   };
 
   const url = `${FIREBASE_CONFIG.databaseURL}/users/${firebaseUser.uid}/portfolio.json?auth=${firebaseToken}`;
