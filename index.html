@@ -197,9 +197,9 @@ body {
 .live-price { color: var(--text1); font-weight: 600; }
 .live-price.loading { color: var(--text3); }
 .live-chip {
-  display: inline-flex; align-items: center; gap: 4px;
-  font-size: 10px; font-weight: 700; padding: 2px 7px;
-  border-radius: 5px; vertical-align: middle; margin-left: 4px;
+  display: inline-flex; align-items: center; gap: 2px;
+  font-size: 10px; font-weight: 700; padding: 1px 5px;
+  border-radius: 4px; vertical-align: middle; margin-left: 4px;
 }
 .live-chip.live { background: #082018; color: var(--green); border: 1px solid #0f3020; }
 .live-chip.twelve { background: #0a1a10; color: #4ade80; border: 1px solid #1a3a20; }
@@ -289,11 +289,11 @@ tbody tr[title]:hover { background: #141c30; }
 .page-sub { font-size: 13px; color: var(--text3); }
 
 /* ── KPI CARDS ── */
-.kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 24px; }
+.kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 18px; }
 
 .kpi {
   background: var(--bg2); border: 1px solid var(--border);
-  border-radius: 14px; padding: 20px 22px;
+  border-radius: 12px; padding: 14px 16px;
   position: relative; overflow: hidden;
   transition: border-color .2s;
 }
@@ -304,22 +304,22 @@ tbody tr[title]:hover { background: #141c30; }
   opacity: .6;
 }
 .kpi-icon {
-  width: 32px; height: 32px; border-radius: 8px;
+  width: 26px; height: 26px; border-radius: 7px;
   background: var(--kpi-bg, #1a2540);
   border: 1px solid var(--kpi-border, #2a3a60);
   display: flex; align-items: center; justify-content: center;
-  margin-bottom: 14px;
+  margin-bottom: 10px;
 }
 .kpi-label {
-  font-size: 11px; font-weight: 600; color: var(--text3);
-  text-transform: uppercase; letter-spacing: .08em; margin-bottom: 8px;
+  font-size: 10px; font-weight: 600; color: var(--text3);
+  text-transform: uppercase; letter-spacing: .08em; margin-bottom: 5px;
 }
 .kpi-value {
-  font-size: 26px; font-weight: 700; color: var(--text1);
-  letter-spacing: -.02em; line-height: 1; margin-bottom: 8px;
+  font-size: 22px; font-weight: 700; color: var(--text1);
+  letter-spacing: -.02em; line-height: 1; margin-bottom: 6px;
 }
-.kpi-footer { display: flex; align-items: center; gap: 8px; }
-.kpi-sub { font-size: 12px; color: var(--text3); }
+.kpi-footer { display: flex; align-items: center; gap: 6px; }
+.kpi-sub { font-size: 11px; color: var(--text3); }
 .pill {
   display: inline-flex; align-items: center; gap: 3px;
   padding: 2px 8px; border-radius: 20px;
@@ -369,7 +369,7 @@ tbody tr[title]:hover { background: #141c30; }
 .tbl-wrap { overflow-x: auto; }
 table { width: 100%; border-collapse: collapse; }
 thead th {
-  padding: 10px 22px;
+  padding: 7px 14px;
   font-size: 10px; font-weight: 700; color: var(--text3);
   text-transform: uppercase; letter-spacing: .09em;
   border-bottom: 1px solid var(--border);
@@ -379,20 +379,20 @@ thead th.num { text-align: right; }
 tbody tr { transition: background .1s; }
 tbody tr:hover { background: #0f1420; }
 tbody td {
-  padding: 13px 22px;
+  padding: 8px 14px;
   border-bottom: 1px solid var(--border);
   color: var(--text2); white-space: nowrap;
-  font-size: 13px;
+  font-size: 12px;
 }
 tbody tr:last-child td { border-bottom: none; }
-td.num { text-align: right; font-variant-numeric: tabular-nums; font-size: 13px; }
+td.num { text-align: right; font-variant-numeric: tabular-nums; font-size: 12px; }
 td.num strong { color: var(--text1); font-weight: 600; }
 .pos-val { color: var(--green) !important; font-weight: 600; }
 .neg-val { color: var(--red) !important; font-weight: 600; }
 .neutral-val { color: var(--text2); }
 
-.td-product strong { display: block; color: var(--text1); font-size: 13px; font-weight: 500; }
-.td-product span { font-size: 11px; color: var(--text3); }
+.td-product strong { display: block; color: var(--text1); font-size: 12px; font-weight: 500; }
+.td-product span { font-size: 10px; color: var(--text3); }
 
 .badge-koop {
   display: inline-block; padding: 2px 9px; border-radius: 6px;
@@ -2051,12 +2051,12 @@ function renderDashboard() {
     const totaleWvEUR = wv + realHistoryPnL + divHistory;
     const pTot = totaleWvEUR >= 0;
 
-    const liveSource = liveprices[isin]?.source === 'twelvedata' ? 'TWELVE DATA' : 'LIVE';
+    const liveSource = liveprices[isin]?.source === 'twelvedata' ? '12D' : '●';
     const liveTag = priceSource === 'live'
-      ? `<span class="live-chip live">● ${liveSource}</span>`
+      ? `<span class="live-chip live" title="Live koers">${liveSource}</span>`
       : priceSource === 'manual'
-        ? `<span class="live-chip manual">✎ HANDMATIG</span>`
-        : `<span class="live-chip stale">SLOTKOERS</span>`;
+        ? `<span class="live-chip manual" title="Handmatig ingevoerd">✎</span>`
+        : `<span class="live-chip stale" title="Slotkoers (niet live)">⏱</span>`;
 
     function fmtLocal(val, cur) {
       const s = Math.abs(val).toLocaleString('nl-NL',{minimumFractionDigits:2,maximumFractionDigits:2});
@@ -2187,10 +2187,10 @@ function renderDashboard() {
     const pTot2 = totaleWvEUR2 >= 0;
 
     const liveTag2 = priceSource2 === 'live'
-      ? `<span class="live-chip live">● LIVE</span>`
+      ? `<span class="live-chip live" title="Live koers">●</span>`
       : priceSource2 === 'manual'
-        ? `<span class="live-chip manual">✎ HANDMATIG</span>`
-        : `<span class="live-chip stale">SLOTKOERS</span>`;
+        ? `<span class="live-chip manual" title="Handmatig ingevoerd">✎</span>`
+        : `<span class="live-chip stale" title="Slotkoers (niet live)">⏱</span>`;
 
     function fmtLocal2(val, cur) {
       const s = Math.abs(val).toLocaleString('nl-NL',{minimumFractionDigits:2,maximumFractionDigits:2});
