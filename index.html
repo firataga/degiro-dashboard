@@ -1647,6 +1647,10 @@ function handleFile(file, slot) {
   r.onload = e => {
     files[slot] = e.target.result;
     hasNewUpload = true;
+    try {
+      localStorage.setItem('degiro_csv_' + slot, e.target.result);
+      localStorage.setItem('degiro_csv_filename_' + slot, file.name);
+    } catch(err) { console.warn('LocalStorage quota for CSV:', err); }
     document.getElementById('slot-'+slot).classList.add('loaded');
     document.getElementById('status-'+slot).textContent = '✓ ' + file.name;
     checkReady();
@@ -1655,6 +1659,21 @@ function handleFile(file, slot) {
 }
 function checkReady() {
   document.getElementById('startBtn').disabled = !(files.transactions && files.portfolio && files.account);
+}
+
+function loadCachedFiles() {
+  ['transactions', 'portfolio', 'account'].forEach(slot => {
+    const cached = localStorage.getItem('degiro_csv_' + slot);
+    const fname = localStorage.getItem('degiro_csv_filename_' + slot);
+    if (cached) {
+      files[slot] = cached;
+      const slotEl = document.getElementById('slot-' + slot);
+      const statusEl = document.getElementById('status-' + slot);
+      if (slotEl) slotEl.classList.add('loaded');
+      if (statusEl) statusEl.textContent = '✓ ' + (fname || slot + '.csv');
+    }
+  });
+  checkReady();
 }
 
 // ── BUILD ─────────────────────────────────────────────────────────
@@ -4052,17 +4071,25 @@ function firebaseLogout() {
 
 // Check on load
 window.addEventListener('load', () => {
+  loadCachedFiles();
+
   const authData = localStorage.getItem('firebaseAuth');
-  
   if (authData) {
-    const data = JSON.parse(authData);
-    firebaseUser = data.user;
-    firebaseToken = data.idToken;
-    
-    console.log('✅ Session restored');
-    
-    hideFirebaseAuth();
-    loadCloudData();
+    try {
+      const data = JSON.parse(authData);
+      firebaseUser = data.user;
+      firebaseToken = data.idToken;
+      console.log('✅ Session restored');
+      hideFirebaseAuth();
+      loadCloudData();
+    } catch(e) {}
+  }
+
+  // Als er lokaal al geüploade CSV bestanden zijn, open direct het dashboard
+  if (files.transactions && files.portfolio && files.account) {
+    try {
+      buildDashboard();
+    } catch(e) { console.error('Auto build error:', e); }
   }
 });
 
