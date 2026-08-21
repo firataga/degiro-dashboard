@@ -3018,8 +3018,63 @@ function renderVerkopen() {
 }
 
 // ── TRANSACTIES ───────────────────────────────────────────────────
+let txSortCol = 'datum';
+let txSortAsc = false; // Standaard nieuwste bovenaan
+
+function parseTxDate(dStr, tStr) {
+  if (!dStr) return 0;
+  const parts = dStr.split('-');
+  if (parts.length === 3) {
+    const day = parts[0].padStart(2, '0');
+    const month = parts[1].padStart(2, '0');
+    const year = parts[2];
+    const time = tStr || '00:00';
+    return new Date(`${year}-${month}-${day}T${time}`).getTime() || 0;
+  }
+  return 0;
+}
+
+function sortTransacties(col) {
+  if (txSortCol === col) {
+    txSortAsc = !txSortAsc;
+  } else {
+    txSortCol = col;
+    txSortAsc = (col === 'datum' ? false : true);
+  }
+  renderTransacties();
+}
+
 function renderTransacties() {
-  const sorted = [...data.transactions].sort((a,b) => b._datum.localeCompare(a._datum));
+  const sorted = [...data.transactions].sort((a, b) => {
+    let valA, valB;
+    if (txSortCol === 'datum') {
+      valA = parseTxDate(a._datum, a['Tijd']);
+      valB = parseTxDate(b._datum, b['Tijd']);
+    } else if (txSortCol === 'product') {
+      valA = (a._product || '').toLowerCase();
+      valB = (b._product || '').toLowerCase();
+    } else if (txSortCol === 'type') {
+      valA = a._aantal > 0 ? 'KOOP' : 'VERKOOP';
+      valB = b._aantal > 0 ? 'KOOP' : 'VERKOOP';
+    } else if (txSortCol === 'aantal') {
+      valA = Math.abs(a._aantal);
+      valB = Math.abs(b._aantal);
+    } else if (txSortCol === 'koers') {
+      valA = a._koers;
+      valB = b._koers;
+    } else if (txSortCol === 'waarde') {
+      valA = Math.abs(a._totaal);
+      valB = Math.abs(b._totaal);
+    } else if (txSortCol === 'kosten') {
+      valA = Math.abs(a._kosten || 0);
+      valB = Math.abs(b._kosten || 0);
+    }
+
+    if (valA < valB) return txSortAsc ? -1 : 1;
+    if (valA > valB) return txSortAsc ? 1 : -1;
+    return 0;
+  });
+
   const tbody = document.querySelector('#tblTransacties tbody');
   tbody.innerHTML = '';
   sorted.forEach(r => {
@@ -3034,6 +3089,39 @@ function renderTransacties() {
       <td class="num ${r._kosten ? 'neg-val' : ''}">${r._kosten ? eur(Math.abs(r._kosten)) : '<span style="color:var(--text3)">—</span>'}</td>`;
     tbody.appendChild(tr);
   });
+
+  const getArrow = (col) => txSortCol === col ? (txSortAsc ? ' ▲' : ' ▼') : '';
+  const ths = document.querySelectorAll('#tblTransacties thead th');
+  if (ths.length >= 7) {
+    ths[0].innerHTML = `Datum<span style="font-size:9px;color:var(--accent)">${getArrow('datum')}</span>`;
+    ths[0].style.cursor = 'pointer';
+    ths[0].onclick = () => sortTransacties('datum');
+
+    ths[1].innerHTML = `Product<span style="font-size:9px;color:var(--accent)">${getArrow('product')}</span>`;
+    ths[1].style.cursor = 'pointer';
+    ths[1].onclick = () => sortTransacties('product');
+
+    ths[2].innerHTML = `Type<span style="font-size:9px;color:var(--accent)">${getArrow('type')}</span>`;
+    ths[2].style.cursor = 'pointer';
+    ths[2].onclick = () => sortTransacties('type');
+
+    ths[3].innerHTML = `Aantal<span style="font-size:9px;color:var(--accent)">${getArrow('aantal')}</span>`;
+    ths[3].style.cursor = 'pointer';
+    ths[3].onclick = () => sortTransacties('aantal');
+
+    ths[4].innerHTML = `Koers<span style="font-size:9px;color:var(--accent)">${getArrow('koers')}</span>`;
+    ths[4].style.cursor = 'pointer';
+    ths[4].onclick = () => sortTransacties('koers');
+
+    ths[5].innerHTML = `Waarde EUR<span style="font-size:9px;color:var(--accent)">${getArrow('waarde')}</span>`;
+    ths[5].style.cursor = 'pointer';
+    ths[5].onclick = () => sortTransacties('waarde');
+
+    ths[6].innerHTML = `Kosten EUR<span style="font-size:9px;color:var(--accent)">${getArrow('kosten')}</span>`;
+    ths[6].style.cursor = 'pointer';
+    ths[6].onclick = () => sortTransacties('kosten');
+  }
+
   document.getElementById('txCount').textContent = sorted.length + ' transacties';
 }
 
