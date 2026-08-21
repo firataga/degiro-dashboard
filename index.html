@@ -753,8 +753,9 @@ td.num strong { color: var(--text1); font-weight: 600; }
               <th class="num">Waarde (EUR)</th>
               <th class="num">P/E</th>
               <th class="num">P/S</th>
-              <th class="num">W/V (EUR)</th>
+              <th class="num">Ongerealiseerd W/V (EUR)</th>
               <th class="num">W/V %</th>
+              <th class="num" title="Ongerealiseerd + Gerealiseerd resultaat (eerdere verkopen)">Totale W/V (EUR)</th>
             </tr></thead>
             <tbody></tbody>
           </table>
@@ -779,8 +780,9 @@ td.num strong { color: var(--text1); font-weight: 600; }
               <th class="num">Koers (Lokaal)</th>
               <th class="num">Waarde (Lokaal)</th>
               <th class="num">Waarde (EUR)</th>
-              <th class="num">W/V (EUR)</th>
+              <th class="num">Ongerealiseerd W/V (EUR)</th>
               <th class="num">W/V %</th>
+              <th class="num" title="Ongerealiseerd + Gerealiseerd resultaat (eerdere verkopen)">Totale W/V (EUR)</th>
             </tr></thead>
             <tbody></tbody>
           </table>
@@ -1924,6 +1926,71 @@ function renderDashboard() {
 
   // Table — split ETFs and stocks
   const gak = calcGAK();
+
+  // Bereken gerealiseerde winst en dividenden per ISIN / product
+  const realizedPnLMap = {};
+  const dividendsMap = {};
+
+  if (data.transactions) {
+    const sortedTx = [...data.transactions].sort((a,b) => {
+      const pA = a._datum.split('-'); const pB = b._datum.split('-');
+      const isoA = pA.length===3 ? `${pA[2]}-${pA[1]}-${pA[0]}` : a._datum;
+      const isoB = pB.length===3 ? `${pB[2]}-${pB[1]}-${pB[0]}` : b._datum;
+      return isoA.localeCompare(isoB);
+    });
+
+    const buyQueues = {};
+    sortedTx.forEach(r => {
+      const key = r['ISIN'] || r._product;
+      if (!key) return;
+      if (!buyQueues[key]) buyQueues[key] = [];
+
+      if (r._aantal > 0) {
+        const betaald = Math.abs(r._totaal);
+        const koersEUR = betaald > 0 ? betaald / r._aantal : Math.abs(r._koers);
+        buyQueues[key].push({ koersEUR, rest: r._aantal });
+      } else if (r._aantal < 0) {
+        let teVerkopen = Math.abs(r._aantal);
+        const opbrengst = Math.abs(r._totaal);
+        let kostprijs = 0;
+        const queue = buyQueues[key] || [];
+        while (teVerkopen > 0 && queue.length > 0) {
+          const buy = queue[0];
+          const gebruik = Math.min(buy.rest, teVerkopen);
+          kostprijs += gebruik * buy.koersEUR;
+          buy.rest -= gebruik;
+          teVerkopen -= gebruik;
+          if (buy.rest < 0.0001) queue.shift();
+        }
+        const profit = opbrengst - kostprijs - (r._kosten ? Math.abs(r._kosten) : 0);
+        realizedPnLMap[key] = (realizedPnLMap[key] || 0) + profit;
+        if (r._product) realizedPnLMap[r._product] = (realizedPnLMap[r._product] || 0) + profit;
+      }
+    });
+  }
+
+  if (data.account && data.account.length > 0) {
+    data.account.forEach(r => {
+      const desc = (r['Omschrijving'] || '').toLowerCase();
+      if (desc.includes('dividend')) {
+        const prod = (r['Product'] || '').trim();
+        const isin = r['ISIN'] || '';
+        let amount = 0;
+        const keys = Object.keys(r);
+        for (let i = 0; i < keys.length; i++) {
+          if (r[keys[i]] === 'EUR' && keys[i+1]) {
+            amount = pn(r[keys[i+1]]);
+            if (amount !== 0) break;
+          }
+        }
+        if (amount > 0) {
+          if (isin) dividendsMap[isin] = (dividendsMap[isin] || 0) + amount;
+          if (prod) dividendsMap[prod] = (dividendsMap[prod] || 0) + amount;
+        }
+      }
+    });
+  }
+
   function isETF(r) {
     const name = (r['Product']||'').toUpperCase();
     const isin = (r['Symbool/ISIN']||'').toUpperCase();
@@ -1944,50 +2011,45 @@ function renderDashboard() {
     const g = getGAK(gak, name, isin);
     const gakP = g.aantal > 0 ? g.totaalBetaald/g.aantal : 0;
 
-    // Valuta uit Portfolio.csv (kolom na slotkoers)
-    const keys = Object.keys(r);
-    // Portfolio.csv: valuta in naamloze kolom '' na Lokale waarde
     const localCurrency = (r['Lokale waarde'] || 'EUR').trim();
-    const isUSD = localCurrency === 'USD';
     const localSlotkoers = pn(r['Slotkoers']);
     const lokaleWaardeCSV = pn(r['']);
 
-    // Price priority: 1) live Finnhub  2) handmatig opgeslagen  3) Portfolio.csv slotkoers
-    // Live price from Finnhub comes in local currency, priceEur is EUR converted
     let koersLokaal, waardeEUR, koersEUR, priceSource = 'slotkoers';
 
     if (liveprices[isin] && liveprices[isin].priceEur) {
       koersEUR   = liveprices[isin].priceEur;
-      koersLokaal = liveprices[isin].price; // original local currency price
+      koersLokaal = liveprices[isin].price;
       waardeEUR  = koersEUR * aantal;
       priceSource = 'live';
     } else if (manualPrices[isin]) {
-      // Manual: koers per stuk in lokale valuta, EUR per stuk apart opgeslagen
       koersLokaal = manualPrices[isin];
-      // Als geen EUR conversie opgeslagen: gebruik CSV Waarde in EUR als fallback
       const eurPerStuk = manualPrices[isin + '_eur_per_stuk'];
       if (eurPerStuk) {
         koersEUR  = eurPerStuk;
         waardeEUR = eurPerStuk * aantal;
       } else {
-        // Nog geen wisselkoers opgeslagen — gebruik CSV waarde
         waardeEUR = pn(r['Waarde in EUR']);
         koersEUR  = aantal > 0 ? waardeEUR / aantal : 0;
       }
       priceSource = 'manual';
     } else {
-      // Slotkoers uit Portfolio.csv
       koersLokaal = localSlotkoers;
       waardeEUR   = pn(r['Waarde in EUR']);
       koersEUR    = aantal > 0 ? waardeEUR / aantal : 0;
     }
 
-    const waardeLokal = koersLokaal * aantal;
     const kostprijs = gakP * aantal;
     const heeftGAK = gakP > 0;
     const wv = heeftGAK ? (waardeEUR - kostprijs) : 0;
     const wvPct = (heeftGAK && kostprijs > 0) ? (wv/kostprijs*100) : 0;
     const p = wv >= 0;
+
+    // Totale W/V = Ongerealiseerd (huidig) + Gerealiseerd (verleden) + Dividend
+    const realHistoryPnL = (realizedPnLMap[isin] || realizedPnLMap[name] || 0);
+    const divHistory = (dividendsMap[isin] || dividendsMap[name] || 0);
+    const totaleWvEUR = wv + realHistoryPnL + divHistory;
+    const pTot = totaleWvEUR >= 0;
 
     const liveSource = liveprices[isin]?.source === 'twelvedata' ? 'TWELVE DATA' : 'LIVE';
     const liveTag = priceSource === 'live'
@@ -1996,13 +2058,11 @@ function renderDashboard() {
         ? `<span class="live-chip manual">✎ HANDMATIG</span>`
         : `<span class="live-chip stale">SLOTKOERS</span>`;
 
-    // Format local currency
     function fmtLocal(val, cur) {
       const s = Math.abs(val).toLocaleString('nl-NL',{minimumFractionDigits:2,maximumFractionDigits:2});
       return cur === 'USD' ? '$ ' + s : '€ ' + s;
     }
 
-    // Editable price cell — input in local currency
     const savedLocal = manualPrices[isin] || koersLokaal;
     const priceCell = priceSource === 'live'
       ? `<td class="num">${fmtLocal(koersLokaal, localCurrency)}${liveTag}</td>`
@@ -2046,7 +2106,8 @@ function renderDashboard() {
       <td class="num">${ratioBadge(peVal, [15, 30], 'P/E')}</td>
       <td class="num">${ratioBadge(psVal, [3, 10], 'P/S')}</td>
       <td class="num ${heeftGAK?(p?'pos-val':'neg-val'):''}">${heeftGAK ? eur(wv,true) : '<span style="color:var(--text3)">—</span>'}</td>
-      <td class="num ${heeftGAK?(p?'pos-val':'neg-val'):''}">${heeftGAK ? ((p?'▲':'▼')+' '+Math.abs(wvPct).toFixed(2)+'%') : '<span style="color:var(--text3)">—</span>'}</td>`;
+      <td class="num ${heeftGAK?(p?'pos-val':'neg-val'):''}">${heeftGAK ? ((p?'▲':'▼')+' '+Math.abs(wvPct).toFixed(2)+'%') : '<span style="color:var(--text3)">—</span>'}</td>
+      <td class="num ${pTot?'pos-val':'neg-val'}"><strong>${eur(totaleWvEUR, true)}</strong></td>`;
     tbody.appendChild(tr);
   });
   document.getElementById('portfolioCount').textContent = stockRows.length + ' posities';
@@ -2085,7 +2146,6 @@ function renderDashboard() {
     const g = getGAK(gak, name, isin);
     const gakP = g.aantal > 0 ? g.totaalBetaald/g.aantal : 0;
 
-    // Portfolio.csv: valuta in naamloze kolom ''
     const localCurrency2 = (r['Lokale waarde'] || 'EUR').trim();
     const localSlotkoers2 = pn(r['Slotkoers']);
     const lokaleWaardeCSV2 = pn(r['']);
@@ -2113,13 +2173,18 @@ function renderDashboard() {
       koersEUR2    = aantal > 0 ? waardeEUR2 / aantal : 0;
     }
 
-    const kostprijs2 = gakP * aantal;  // gakP nu via ISIN = correct
+    const kostprijs2 = gakP * aantal;
     const heeftGAK2 = gakP > 0;
     const wv2 = heeftGAK2 ? (waardeEUR2 - kostprijs2) : null;
     const wvPct2 = (heeftGAK2 && kostprijs2 > 0) ? (wv2/kostprijs2*100) : null;
     const p2 = wv2 !== null ? wv2 >= 0 : true;
     etfTotaalEUR += waardeEUR2;
     if (wv2 !== null) etfWvEUR += wv2;
+
+    const realHistoryPnL2 = (realizedPnLMap[isin] || realizedPnLMap[name] || 0);
+    const divHistory2 = (dividendsMap[isin] || dividendsMap[name] || 0);
+    const totaleWvEUR2 = (wv2 || 0) + realHistoryPnL2 + divHistory2;
+    const pTot2 = totaleWvEUR2 >= 0;
 
     const liveTag2 = priceSource2 === 'live'
       ? `<span class="live-chip live">● LIVE</span>`
@@ -2161,7 +2226,8 @@ function renderDashboard() {
       <td class="num">${fmtLocal2(waardeLokalDisplay2, localCurrency2)}</td>
       <td class="num"><strong>${eur(waardeEUR2)}</strong></td>
       <td class="num ${wv2!==null?(p2?'pos-val':'neg-val'):''}">${wv2!==null ? eur(wv2,true) : '<span style="color:var(--text3)">—</span>'}</td>
-      <td class="num ${wv2!==null?(p2?'pos-val':'neg-val'):''}">${wv2!==null ? ((p2?'▲':'▼')+' '+Math.abs(wvPct2).toFixed(2)+'%') : '<span style="color:var(--text3)">—</span>'}</td>`;
+      <td class="num ${wv2!==null?(p2?'pos-val':'neg-val'):''}">${wv2!==null ? ((p2?'▲':'▼')+' '+Math.abs(wvPct2).toFixed(2)+'%') : '<span style="color:var(--text3)">—</span>'}</td>
+      <td class="num ${pTot2?'pos-val':'neg-val'}"><strong>${eur(totaleWvEUR2, true)}</strong></td>`;
     tbodyETF.appendChild(tr2);
   });
 
