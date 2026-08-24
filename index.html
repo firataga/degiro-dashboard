@@ -1220,6 +1220,7 @@ let manualInleg = null;
 let liveprices = {}; // isin -> { price, currency, ticker }
 let isinToTicker = {}; // cache
 let manualPrices = {}; // isin -> priceEur (handmatig ingevoerd)
+let manualGAK = {};    // isin -> gakEurPerStuk (handmatig GAK override voor stock splits etc.)
 
 function loadManualPrices() {
   const saved = localStorage.getItem('degiro_manual_prices');
@@ -1237,6 +1238,40 @@ function loadManualPrices() {
     } catch(e) {}
   }
 }
+
+function loadManualGAK() {
+  const saved = localStorage.getItem('degiro_manual_gak');
+  if (saved) { try { manualGAK = JSON.parse(saved); } catch(e) {} }
+}
+
+function applyManualGAK(isin) {
+  const v = parseFloat(document.getElementById('gak-input-' + isin).value);
+  if (isNaN(v) || v <= 0) return;
+  manualGAK[isin] = v;
+  localStorage.setItem('degiro_manual_gak', JSON.stringify(manualGAK));
+  saveDataToCloud(true);
+  renderDashboard();
+}
+
+function clearManualGAK(isin) {
+  delete manualGAK[isin];
+  localStorage.setItem('degiro_manual_gak', JSON.stringify(manualGAK));
+  saveDataToCloud(true);
+  renderDashboard();
+}
+
+function startGAKEdit(isin) {
+  document.getElementById('gak-disp-' + isin).style.display = 'none';
+  document.getElementById('gak-edit-' + isin).style.display = 'flex';
+  const inp = document.getElementById('gak-input-' + isin);
+  if (inp) { inp.focus(); inp.select(); }
+}
+
+function cancelGAKEdit(isin) {
+  document.getElementById('gak-disp-' + isin).style.display = '';
+  document.getElementById('gak-edit-' + isin).style.display = 'none';
+}
+
 function saveManualPrice(isin, priceEur) {
   manualPrices[isin] = priceEur;
   localStorage.setItem('degiro_manual_prices', JSON.stringify(manualPrices));
@@ -1682,6 +1717,7 @@ function loadCachedFiles() {
 function buildDashboard() {
   loadSavedInleg();
   loadManualPrices();
+  loadManualGAK();
   data.transactions = parseCSV(files.transactions);
   data.portfolio    = parseCSV(files.portfolio);
   data.account      = parseCSV(files.account);
@@ -2092,6 +2128,22 @@ function renderDashboard() {
       return `<span class="ratio-badge high" title="${label}: ${val}">${val}</span>`;
     }
 
+    const hasManualGAK = manualGAK[isin] !== undefined;
+    const gakCell = `<td class="num price-cell" style="min-width:120px">
+      <span id="gak-disp-${isin}">
+        ${gakP > 0 ? eur(gakP) : '<span style="color:var(--text3)">—</span>'}
+        ${hasManualGAK ? `<span class="live-chip manual" title="Handmatige GAK (stock split?)">✎</span>` : ''}
+        <button class="price-edit-btn" onclick="event.stopPropagation();startGAKEdit('${isin}')" title="GAK handmatig aanpassen (bijv. na stock split)">✎</button>
+      </span>
+      <span id="gak-edit-${isin}" style="display:none;align-items:center;gap:4px">
+        <span class="price-cur-label">€</span>
+        <input class="price-input" id="gak-input-${isin}" type="number" step="0.01" value="${gakP > 0 ? gakP.toFixed(2) : ''}" placeholder="GAK €" onclick="event.stopPropagation()">
+        <button class="price-save-btn" onclick="event.stopPropagation();applyManualGAK('${isin}')">✓</button>
+        <button class="price-cancel-btn" onclick="event.stopPropagation();cancelGAKEdit('${isin}')">✕</button>
+        ${hasManualGAK ? `<button class="price-cancel-btn" style="background:#200a0a;color:#f87171;border:1px solid #4a1a1a" onclick="event.stopPropagation();clearManualGAK('${isin}')" title="Reset naar berekende GAK">🗑</button>` : ''}
+      </span>
+    </td>`;
+
     const tr = document.createElement('tr');
     tr.style.cursor = 'pointer';
     tr.title = 'Klik voor aankoop- en verkoophistorie';
@@ -2099,7 +2151,7 @@ function renderDashboard() {
     tr.innerHTML = `
       <td class="td-product"><strong>${name}</strong><span>${isin} <span class="cur-flag">${localCurrency}</span></span></td>
       <td class="num">${aantal.toLocaleString('nl-NL',{maximumFractionDigits:0})}</td>
-      <td class="num">${gakP > 0 ? eur(gakP) : '<span style="color:var(--text3)">—</span>'}</td>
+      ${gakCell}
       ${priceCell}
       <td class="num">${fmtLocal(waardeLokalDisplay, localCurrency)}</td>
       <td class="num"><strong>${eur(waardeEUR)}</strong></td>
@@ -2214,6 +2266,22 @@ function renderDashboard() {
 
     const waardeLokalDisplay2 = priceSource2 === 'live' ? koersLokaal2 * aantal : (priceSource2 === 'manual' ? manualPrices[isin] * aantal : lokaleWaardeCSV2);
 
+    const hasManualGAK2 = manualGAK[isin] !== undefined;
+    const gakCell2 = `<td class="num price-cell" style="min-width:120px">
+      <span id="gak-disp-${isin}">
+        ${gakP > 0 ? eur(gakP) : '<span style="color:var(--text3)">—</span>'}
+        ${hasManualGAK2 ? `<span class="live-chip manual" title="Handmatige GAK">✎</span>` : ''}
+        <button class="price-edit-btn" onclick="event.stopPropagation();startGAKEdit('${isin}')" title="GAK handmatig aanpassen">✎</button>
+      </span>
+      <span id="gak-edit-${isin}" style="display:none;align-items:center;gap:4px">
+        <span class="price-cur-label">€</span>
+        <input class="price-input" id="gak-input-${isin}" type="number" step="0.01" value="${gakP > 0 ? gakP.toFixed(2) : ''}" placeholder="GAK €" onclick="event.stopPropagation()">
+        <button class="price-save-btn" onclick="event.stopPropagation();applyManualGAK('${isin}')">✓</button>
+        <button class="price-cancel-btn" onclick="event.stopPropagation();cancelGAKEdit('${isin}')">✕</button>
+        ${hasManualGAK2 ? `<button class="price-cancel-btn" style="background:#200a0a;color:#f87171;border:1px solid #4a1a1a" onclick="event.stopPropagation();clearManualGAK('${isin}')" title="Reset naar berekende GAK">🗑</button>` : ''}
+      </span>
+    </td>`;
+
     const tr2 = document.createElement('tr');
     tr2.style.cursor = 'pointer';
     tr2.title = 'Klik voor aankoop- en verkoophistorie';
@@ -2221,7 +2289,7 @@ function renderDashboard() {
     tr2.innerHTML = `
       <td class="td-product"><strong>${name}</strong><span>${isin} <span class="cur-flag">${localCurrency2}</span></span></td>
       <td class="num">${aantal.toLocaleString('nl-NL',{maximumFractionDigits:0})}</td>
-      <td class="num">${gakP > 0 ? eur(gakP) : '<span style="color:var(--text3)">—</span>'}</td>
+      ${gakCell2}
       ${priceCell2}
       <td class="num">${fmtLocal2(waardeLokalDisplay2, localCurrency2)}</td>
       <td class="num"><strong>${eur(waardeEUR2)}</strong></td>
@@ -2361,7 +2429,14 @@ function calcGAK() {
 }
 
 function getGAK(gak, name, isin) {
-  // Prefer ISIN lookup, fall back to name
+  // 1) Handmatige GAK override (voor stock splits of correcties)
+  if (isin && manualGAK[isin] !== undefined) {
+    // Reconstruct a compatible object: totaalBetaald is irrelevant, we use per-stuk direct
+    const portfolioRow = data.portfolio.find(r => (r['Symbool/ISIN']||'') === isin);
+    const aantal = portfolioRow ? pn(portfolioRow['Aantal']) : 0;
+    return { aantal, totaalBetaald: manualGAK[isin] * aantal, _manualGAK: manualGAK[isin] };
+  }
+  // 2) Bereken via transacties (ISIN heeft voorkeur boven naam)
   if (isin && gak.byISIN[isin]) return gak.byISIN[isin];
   if (gak.byName[name]) return gak.byName[name];
   return { aantal:0, totaalBetaald:0 };
@@ -4079,6 +4154,10 @@ function loadCloudData() {
           manualYearEndValues = cloudData.manualYearEndValues;
           localStorage.setItem('degiro_manual_yearend', JSON.stringify(manualYearEndValues));
         }
+        if (cloudData.manualGAK && typeof cloudData.manualGAK === 'object') {
+          manualGAK = cloudData.manualGAK;
+          localStorage.setItem('degiro_manual_gak', JSON.stringify(manualGAK));
+        }
 
         setTimeout(() => {
           try {
@@ -4109,7 +4188,8 @@ function saveDataToCloud(silent) {
     manualPrices: manualPrices || {},
     manualInleg: manualInleg,
     manualInlegByYear: manualInlegByYear || {},
-    manualYearEndValues: manualYearEndValues || {}
+    manualYearEndValues: manualYearEndValues || {},
+    manualGAK: manualGAK || {}
   };
 
   const url = `${FIREBASE_CONFIG.databaseURL}/users/${firebaseUser.uid}/portfolio.json?auth=${firebaseToken}`;
