@@ -813,6 +813,82 @@ td.num strong { color: var(--text1); font-weight: 600; }
         <div class="page-title">Analyse</div>
         <div class="page-sub">Verdeling en prestaties van je portfolio</div>
       </div>
+      
+      <!-- SCENARIO CALCULATOR -->
+      <div class="card" style="margin-bottom:24px">
+        <div class="card-header">
+          <h3>Scenario-analyse Calculator</h3>
+          <small>Bereken het potentiële rendement op basis van jouw verwachtingen voor de toekomstige omzet en P/S-ratio.</small>
+        </div>
+        <div style="padding:22px; display:flex; gap:24px; flex-wrap:wrap; align-items:flex-start">
+          
+          <!-- Inputs -->
+          <div style="flex:1; min-width:300px; background:#0f1420; padding:20px; border-radius:12px; border:1px solid #252d45">
+            <h4 style="margin-top:0; margin-bottom:16px; font-size:13px; color:var(--text1)">Jouw verwachtingen</h4>
+            
+            <div style="display:flex; gap:16px; margin-bottom:16px">
+              <div style="flex:1">
+                <label style="display:block; font-size:11px; color:var(--text3); margin-bottom:6px">Huidige koers ($ of €)</label>
+                <input type="number" id="calcKoers" step="0.01" value="210.91" oninput="updateScenario()" style="width:100%; background:#161b22; border:1px solid #30363d; border-radius:6px; padding:8px 12px; color:#fff">
+              </div>
+              <div style="flex:1">
+                <label style="display:block; font-size:11px; color:var(--text3); margin-bottom:6px">Aantal aandelen (mln)</label>
+                <input type="number" id="calcAandelen" step="1" value="290" oninput="updateScenario()" style="width:100%; background:#161b22; border:1px solid #30363d; border-radius:6px; padding:8px 12px; color:#fff">
+              </div>
+            </div>
+
+            <div style="display:flex; gap:16px; margin-bottom:16px">
+              <div style="flex:1">
+                <label style="display:block; font-size:11px; color:var(--text3); margin-bottom:6px">Verwachte omzet (mrd)</label>
+                <input type="number" id="calcOmzet" step="0.1" value="22.4" oninput="updateScenario()" style="width:100%; background:#161b22; border:1px solid #30363d; border-radius:6px; padding:8px 12px; color:#fff">
+              </div>
+              <div style="flex:1">
+                <label style="display:block; font-size:11px; color:var(--text3); margin-bottom:6px">Doel P/S-ratio (bijv 6.0)</label>
+                <input type="number" id="calcPS" step="0.1" value="6.0" oninput="updateScenario()" style="width:100%; background:#161b22; border:1px solid #30363d; border-radius:6px; padding:8px 12px; color:#fff">
+              </div>
+            </div>
+
+            <div style="display:flex; gap:16px">
+              <div style="flex:1">
+                <label style="display:block; font-size:11px; color:var(--text3); margin-bottom:6px">Jaren vooruit (horizon)</label>
+                <input type="number" id="calcJaren" step="1" value="3" oninput="updateScenario()" style="width:100%; background:#161b22; border:1px solid #30363d; border-radius:6px; padding:8px 12px; color:#fff">
+              </div>
+              <div style="flex:1; display:flex; align-items:flex-end">
+                <button onclick="document.getElementById('calcKoers').value=''; document.getElementById('calcOmzet').value=''; updateScenario()" style="background:#200a0a; color:#f87171; border:1px solid #4a1a1a; padding:8px 12px; border-radius:6px; cursor:pointer; width:100%; font-weight:600">Reset</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Outputs -->
+          <div style="flex:1.5; min-width:320px; display:grid; grid-template-columns:1fr 1fr; gap:16px">
+            
+            <div class="kpi" style="--kpi-color:#4f80ff;--kpi-bg:#0e1a35;--kpi-border:#1e3060; margin:0">
+              <div class="kpi-label">Verwachte Koers</div>
+              <div class="kpi-value" id="calcOutKoers" style="font-size:24px">—</div>
+              <div class="kpi-footer"><span class="kpi-sub">Bij doel P/S-ratio</span></div>
+            </div>
+
+            <div class="kpi" style="--kpi-color:#34d399;--kpi-bg:#081a10;--kpi-border:#0f2a1a; margin:0">
+              <div class="kpi-label">Totaal Rendement</div>
+              <div class="kpi-value" id="calcOutRendement" style="font-size:24px">—</div>
+              <div class="kpi-footer"><span class="kpi-sub">Tot aan de horizon</span></div>
+            </div>
+
+            <div class="kpi" style="--kpi-color:#fbbf24;--kpi-bg:#1a1200;--kpi-border:#2a1e00; margin:0">
+              <div class="kpi-label">Rendement per jaar (CAGR)</div>
+              <div class="kpi-value" id="calcOutCAGR" style="font-size:24px">—</div>
+              <div class="kpi-footer"><span class="kpi-sub">Samengestelde groei</span></div>
+            </div>
+
+            <div class="kpi" style="--kpi-color:#a78bfa;--kpi-bg:#140e25;--kpi-border:#22184a; margin:0">
+              <div class="kpi-label">Huidige Impliciete P/S</div>
+              <div class="kpi-value" id="calcOutImpliedPS" style="font-size:24px">—</div>
+              <div class="kpi-footer"><span class="kpi-sub">Koers nu vs. verwachte omzet</span></div>
+            </div>
+
+          </div>
+        </div>
+      </div>
       <div class="chart-grid">
         <div class="chart-card">
           <h3>Portefeuille verdeling — waarde (EUR)</h3>
@@ -2465,6 +2541,55 @@ function updateInleg() {
   }
 }
 
+function updateScenario() {
+  const hKoers = parseFloat(document.getElementById('calcKoers').value);
+  const aandelen = parseFloat(document.getElementById('calcAandelen').value);
+  const omzetMrd = parseFloat(document.getElementById('calcOmzet').value);
+  const ps = parseFloat(document.getElementById('calcPS').value);
+  const jaren = parseFloat(document.getElementById('calcJaren').value);
+
+  const elKoers = document.getElementById('calcOutKoers');
+  const elRendement = document.getElementById('calcOutRendement');
+  const elCAGR = document.getElementById('calcOutCAGR');
+  const elImpliedPS = document.getElementById('calcOutImpliedPS');
+
+  if (!hKoers || !aandelen || !omzetMrd || !ps || !jaren) {
+    elKoers.innerHTML = '—';
+    elRendement.innerHTML = '—';
+    elCAGR.innerHTML = '—';
+    elImpliedPS.innerHTML = '—';
+    return;
+  }
+
+  // Omzet (in miljarden) * PS = Toekomstige Market Cap (in miljarden)
+  const vCapMrd = omzetMrd * ps;
+  // Verwachte koers = (Toekomstige Market Cap in miljoenen) / Aandelen in miljoenen
+  const vKoers = (vCapMrd * 1000) / aandelen;
+  
+  // Rendement
+  const rendementFractie = (vKoers / hKoers) - 1;
+  const rendementPct = rendementFractie * 100;
+  
+  // CAGR
+  const cagrFractie = Math.pow(vKoers / hKoers, 1 / jaren) - 1;
+  const cagrPct = cagrFractie * 100;
+
+  // Huidige Implied P/S (op basis van huidige koers en VERWACHTE omzet)
+  const hCapMrd = (hKoers * aandelen) / 1000;
+  const impliedPS = hCapMrd / omzetMrd;
+
+  function fmtPct(val) {
+    const s = Math.abs(val).toLocaleString('nl-NL', {minimumFractionDigits:1, maximumFractionDigits:1}) + '%';
+    return val >= 0 ? '+' + s : '-' + s;
+  }
+  function clr(val) { return val >= 0 ? 'var(--green)' : 'var(--red)'; }
+
+  elKoers.innerHTML = `<strong style="color:var(--text1)">$ ${vKoers.toLocaleString('nl-NL',{minimumFractionDigits:2, maximumFractionDigits:2})}</strong>`;
+  elRendement.innerHTML = `<strong style="color:${clr(rendementPct)}">${fmtPct(rendementPct)}</strong>`;
+  elCAGR.innerHTML = `<strong style="color:${clr(cagrPct)}">${fmtPct(cagrPct)}</strong>`;
+  elImpliedPS.innerHTML = `<strong style="color:var(--text1)">${impliedPS.toLocaleString('nl-NL',{minimumFractionDigits:1, maximumFractionDigits:1})}x</strong>`;
+}
+
 // ── ANALYSE ───────────────────────────────────────────────────────
 function getBestWaardeEUR(r) {
   const isin = r['Symbool/ISIN'] || '';
@@ -2815,6 +2940,7 @@ function renderGroei() {
 }
 
 function renderAnalyse() {
+  updateScenario(); // Init the scenario calculator
   const rows = data.portfolio.filter(r => r['Product'] && !r['Product'].includes('CASH'));
   const gak = calcGAK();
   const COLORS = ['#4f80ff','#34d399','#fbbf24','#f87171','#a78bfa','#38bdf8','#fb923c','#4ade80','#e879f9','#94a3b8'];
