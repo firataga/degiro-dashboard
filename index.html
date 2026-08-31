@@ -889,6 +889,80 @@ td.num strong { color: var(--text1); font-weight: 600; }
           </div>
         </div>
       </div>
+
+      <!-- FAIR VALUE CALCULATOR (DCF) -->
+      <div class="card" style="margin-bottom:24px">
+        <div class="card-header">
+          <h3>Fair Value Calculator (Discounted Cash Flow)</h3>
+          <small>Bereken de intrinsieke waarde van een aandeel op basis van de te verwachten Vrije Kasstroom (Free Cash Flow).</small>
+        </div>
+        <div style="padding:22px; display:flex; gap:24px; flex-wrap:wrap; align-items:flex-start">
+          
+          <!-- Inputs -->
+          <div style="flex:1; min-width:300px; background:#0f1420; padding:20px; border-radius:12px; border:1px solid #252d45">
+            <h4 style="margin-top:0; margin-bottom:16px; font-size:13px; color:var(--text1)">Waarderings-input</h4>
+            
+            <div style="display:flex; gap:16px; margin-bottom:16px">
+              <div style="flex:1">
+                <label style="display:block; font-size:11px; color:var(--text3); margin-bottom:6px">Huidige Koers</label>
+                <input type="number" id="dcfKoers" step="0.01" value="150" oninput="updateDCF()" style="width:100%; background:#161b22; border:1px solid #30363d; border-radius:6px; padding:8px 12px; color:#fff">
+              </div>
+              <div style="flex:1">
+                <label style="display:block; font-size:11px; color:var(--text3); margin-bottom:6px">FCF per aandeel (nu)</label>
+                <input type="number" id="dcfFCF" step="0.01" value="5.50" oninput="updateDCF()" style="width:100%; background:#161b22; border:1px solid #30363d; border-radius:6px; padding:8px 12px; color:#fff">
+              </div>
+            </div>
+
+            <div style="display:flex; gap:16px; margin-bottom:16px">
+              <div style="flex:1">
+                <label style="display:block; font-size:11px; color:var(--text3); margin-bottom:6px">Groei jaar 1-5 (%)</label>
+                <input type="number" id="dcfGrowth1" step="0.1" value="15" oninput="updateDCF()" style="width:100%; background:#161b22; border:1px solid #30363d; border-radius:6px; padding:8px 12px; color:#fff">
+              </div>
+              <div style="flex:1">
+                <label style="display:block; font-size:11px; color:var(--text3); margin-bottom:6px">Groei jaar 6-10 (%)</label>
+                <input type="number" id="dcfGrowth2" step="0.1" value="10" oninput="updateDCF()" style="width:100%; background:#161b22; border:1px solid #30363d; border-radius:6px; padding:8px 12px; color:#fff">
+              </div>
+            </div>
+
+            <div style="display:flex; gap:16px">
+              <div style="flex:1">
+                <label style="display:block; font-size:11px; color:var(--text3); margin-bottom:6px">Discount Rate / Eis (%)</label>
+                <input type="number" id="dcfDiscount" step="0.1" value="10" oninput="updateDCF()" style="width:100%; background:#161b22; border:1px solid #30363d; border-radius:6px; padding:8px 12px; color:#fff">
+              </div>
+              <div style="flex:1">
+                <label style="display:block; font-size:11px; color:var(--text3); margin-bottom:6px">Terminal Multiple</label>
+                <input type="number" id="dcfMultiple" step="0.1" value="15" oninput="updateDCF()" title="Verwachte P/FCF na 10 jaar" style="width:100%; background:#161b22; border:1px solid #30363d; border-radius:6px; padding:8px 12px; color:#fff">
+              </div>
+            </div>
+            
+            <div style="margin-top:16px; display:flex; justify-content:flex-end">
+                <button onclick="document.getElementById('dcfKoers').value=''; document.getElementById('dcfFCF').value=''; updateDCF()" style="background:#200a0a; color:#f87171; border:1px solid #4a1a1a; padding:8px 12px; border-radius:6px; cursor:pointer; width:100%; font-weight:600">Reset</button>
+            </div>
+          </div>
+
+          <!-- Outputs -->
+          <div style="flex:1.5; min-width:320px; display:grid; grid-template-columns:1fr 1fr; gap:16px">
+            
+            <div class="kpi" style="--kpi-color:#34d399;--kpi-bg:#081a10;--kpi-border:#0f2a1a; margin:0">
+              <div class="kpi-label">Intrinsieke Waarde</div>
+              <div class="kpi-value" id="dcfOutFairValue" style="font-size:24px">—</div>
+              <div class="kpi-footer"><span class="kpi-sub">Theoretische "Fair Value"</span></div>
+            </div>
+
+            <div class="kpi" style="--kpi-color:#4f80ff;--kpi-bg:#0e1a35;--kpi-border:#1e3060; margin:0">
+              <div class="kpi-label">Margin of Safety</div>
+              <div class="kpi-value" id="dcfOutMargin" style="font-size:24px">—</div>
+              <div class="kpi-footer"><span class="kpi-sub">Verschil met huidige koers</span></div>
+            </div>
+            
+            <div class="kpi" style="grid-column: span 2; --kpi-color:#a78bfa;--kpi-bg:#140e25;--kpi-border:#22184a; margin:0; padding-bottom:12px;">
+               <div style="font-size:11px; color:var(--text3); margin-bottom:8px; text-transform:uppercase; letter-spacing:0.05em;">Kasstroom Projectie (Jaar 1 t/m 10)</div>
+               <div id="dcfChart" style="height:70px; width:100%; display:flex; align-items:flex-end; gap:6px; padding-top:10px;"></div>
+            </div>
+
+          </div>
+        </div>
+      </div>
       <div class="chart-grid">
         <div class="chart-card">
           <h3>Portefeuille verdeling — waarde (EUR)</h3>
@@ -2590,6 +2664,67 @@ function updateScenario() {
   elImpliedPS.innerHTML = `<strong style="color:var(--text1)">${impliedPS.toLocaleString('nl-NL',{minimumFractionDigits:1, maximumFractionDigits:1})}x</strong>`;
 }
 
+function updateDCF() {
+  const koers = parseFloat(document.getElementById('dcfKoers').value);
+  const fcf = parseFloat(document.getElementById('dcfFCF').value);
+  const g1 = parseFloat(document.getElementById('dcfGrowth1').value) / 100;
+  const g2 = parseFloat(document.getElementById('dcfGrowth2').value) / 100;
+  const discount = parseFloat(document.getElementById('dcfDiscount').value) / 100;
+  const mult = parseFloat(document.getElementById('dcfMultiple').value);
+
+  const elFairValue = document.getElementById('dcfOutFairValue');
+  const elMargin = document.getElementById('dcfOutMargin');
+  const elChart = document.getElementById('dcfChart');
+
+  if (!koers || !fcf || isNaN(g1) || isNaN(g2) || !discount || !mult) {
+    elFairValue.innerHTML = '—';
+    elMargin.innerHTML = '—';
+    elChart.innerHTML = '';
+    return;
+  }
+
+  let presentValue = 0;
+  let currentFCF = fcf;
+  let maxFCF = 0;
+  const fcfList = [];
+
+  // Projecteer 10 jaar FCF
+  for (let i = 1; i <= 10; i++) {
+    const growth = i <= 5 ? g1 : g2;
+    currentFCF = currentFCF * (1 + growth);
+    
+    // Kort af naar huidige waarde (Discounted)
+    const pv = currentFCF / Math.pow(1 + discount, i);
+    presentValue += pv;
+    
+    fcfList.push(currentFCF);
+    if (currentFCF > maxFCF) maxFCF = currentFCF;
+  }
+
+  // Terminal value (Verkoopwaarde aan het eind van jaar 10 gebaseerd op de multiple)
+  const terminalValue = currentFCF * mult;
+  const pvTerminal = terminalValue / Math.pow(1 + discount, 10);
+  presentValue += pvTerminal;
+
+  const fairValue = presentValue;
+  const marginPct = ((fairValue - koers) / fairValue) * 100; // Hoeveel procent 'korting' krijg je?
+
+  elFairValue.innerHTML = `<strong style="color:var(--text1)">$ ${fairValue.toLocaleString('nl-NL',{minimumFractionDigits:2, maximumFractionDigits:2})}</strong>`;
+  
+  const isBargain = fairValue > koers;
+  const clr = isBargain ? 'var(--green)' : 'var(--red)';
+  const sign = isBargain ? '+' : '';
+  elMargin.innerHTML = `<strong style="color:${clr}">${sign}${marginPct.toLocaleString('nl-NL',{minimumFractionDigits:1, maximumFractionDigits:1})}%</strong>`;
+  
+  // Maak een mini barchart
+  let chartHTML = '';
+  fcfList.forEach((val, idx) => {
+    const h = (val / maxFCF) * 100;
+    chartHTML += `<div style="flex:1; background:#a78bfa; height:${h}%; border-radius:3px 3px 0 0; min-height:1px; position:relative;" title="Jaar ${idx+1}: $${val.toFixed(2)}"></div>`;
+  });
+  elChart.innerHTML = chartHTML;
+}
+
 // ── ANALYSE ───────────────────────────────────────────────────────
 function getBestWaardeEUR(r) {
   const isin = r['Symbool/ISIN'] || '';
@@ -2941,6 +3076,7 @@ function renderGroei() {
 
 function renderAnalyse() {
   updateScenario(); // Init the scenario calculator
+  updateDCF(); // Init the DCF calculator
   const rows = data.portfolio.filter(r => r['Product'] && !r['Product'].includes('CASH'));
   const gak = calcGAK();
   const COLORS = ['#4f80ff','#34d399','#fbbf24','#f87171','#a78bfa','#38bdf8','#fb923c','#4ade80','#e879f9','#94a3b8'];
