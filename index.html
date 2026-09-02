@@ -320,6 +320,11 @@ tbody tr[title]:hover { background: #141c30; }
 }
 .kpi-footer { display: flex; align-items: center; gap: 6px; }
 .kpi-sub { font-size: 11px; color: var(--text3); }
+
+/* ── KOERSGRAFIEK PERIODE-KNOPPEN ── */
+.pchart-periods { display:flex; gap:4px; background:var(--bg3); border:1px solid var(--border2); border-radius:8px; padding:3px; }
+.pchart-period-btn { background:transparent; border:none; color:var(--text2); font-size:11px; font-weight:600; padding:5px 10px; border-radius:6px; cursor:pointer; font-family:inherit; }
+.pchart-period-btn.active { background:var(--accent); color:#fff; }
 .pill {
   display: inline-flex; align-items: center; gap: 3px;
   padding: 2px 8px; border-radius: 20px;
@@ -963,6 +968,37 @@ td.num strong { color: var(--text1); font-weight: 600; }
           </div>
         </div>
       </div>
+
+      <!-- PORTFOLIO VS BENCHMARK -->
+      <div class="card" style="margin-bottom:24px">
+        <div class="card-header">
+          <h3>Portfolio vs. S&amp;P 500</h3>
+          <small>Vergelijkt je stortingen met wat diezelfde bedragen in de S&amp;P 500 hadden opgeleverd — op basis van % koersverloop (SPY), exclusief wisselkoerseffecten.</small>
+        </div>
+        <div id="benchStatus" style="padding:20px;font-size:12px;color:#555">Laden…</div>
+        <div id="benchContent" style="display:none">
+          <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr);padding:0 22px;margin-top:18px">
+            <div class="kpi" style="--kpi-color:#34d399;--kpi-bg:#081a10;--kpi-border:#0f2a1a;margin:0">
+              <div class="kpi-label">Jouw portfolio nu</div>
+              <div class="kpi-value" id="benchPortfolioNow">—</div>
+              <div class="kpi-footer"><span class="kpi-sub" id="benchPortfolioPct"></span></div>
+            </div>
+            <div class="kpi" style="--kpi-color:#4f80ff;--kpi-bg:#0e1a35;--kpi-border:#1e3060;margin:0">
+              <div class="kpi-label">Zelfde stortingen in S&amp;P 500</div>
+              <div class="kpi-value" id="benchSpxNow">—</div>
+              <div class="kpi-footer"><span class="kpi-sub" id="benchSpxPct"></span></div>
+            </div>
+            <div class="kpi" style="margin:0" id="benchDiffCard">
+              <div class="kpi-label">Verschil</div>
+              <div class="kpi-value" id="benchDiff">—</div>
+              <div class="kpi-footer"><span class="kpi-sub">t.o.v. S&amp;P 500</span></div>
+            </div>
+          </div>
+          <div style="padding:18px 22px 6px;height:200px"><canvas id="benchChart"></canvas></div>
+          <div style="padding:0 22px 18px;font-size:11px;color:var(--text3)">Grafiek toont het indexverloop van de S&amp;P 500 (SPY) sinds je eerste storting — gele stippen zijn je stortingsmomenten.</div>
+        </div>
+      </div>
+
       <div class="chart-grid">
         <div class="chart-card">
           <h3>Portefeuille verdeling — waarde (EUR)</h3>
@@ -2053,11 +2089,106 @@ function showPositionDetail(name, isin, currency) {
 
   document.getElementById('posModalTitle').textContent = fullName || name;
   document.getElementById('posModalISIN').textContent = isin;
-  document.getElementById('posModalContent').innerHTML = summaryHTML + aankoopHTML + verkoopHTML;
+  document.getElementById('posModalContent').innerHTML = priceChartHTML(isin) + summaryHTML + aankoopHTML + verkoopHTML;
 
   const modal = document.getElementById('positionModal');
   modal.style.display = 'flex';
   modal.onclick = e => { if (e.target === modal) modal.style.display = 'none'; };
+
+  if (ISIN_TWELVE_MAP[isin]) loadPosPriceHistory(isin, '6M');
+}
+
+// ── KOERSGRAFIEK PER POSITIE ────────────────────────────────────────
+let posPriceChartInstance = null;
+const POS_CHART_PERIODS = { '1M': 22, '3M': 65, '6M': 130, '1J': 260, 'Max': 2500 };
+
+function priceChartHTML(isin) {
+  if (!ISIN_TWELVE_MAP[isin]) return '';
+  const periods = Object.keys(POS_CHART_PERIODS);
+  const btns = periods.map(p => `<button class="pchart-period-btn${p==='6M'?' active':''}" data-p="${p}" onclick="event.stopPropagation();loadPosPriceHistory('${isin}','${p}',this)">${p}</button>`).join('');
+  return `
+    <div style="background:#0f1420;border-radius:10px;padding:14px 16px;margin-bottom:20px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+        <span style="font-size:10px;color:#555;text-transform:uppercase;letter-spacing:.07em">Koersverloop</span>
+        <div class="pchart-periods">${btns}</div>
+      </div>
+      <div id="posPriceChartStatus" style="font-size:12px;color:#555;padding:30px 0;text-align:center">Koers laden…</div>
+      <div id="posPriceChartWrap" style="height:180px;display:none"><canvas id="posPriceChart"></canvas></div>
+    </div>`;
+}
+
+async function loadPosPriceHistory(isin, period, btnEl) {
+  if (btnEl) {
+    document.querySelectorAll('.pchart-period-btn').forEach(b => b.classList.remove('active'));
+    btnEl.classList.add('active');
+  }
+  const statusEl = document.getElementById('posPriceChartStatus');
+  const wrapEl = document.getElementById('posPriceChartWrap');
+  if (!statusEl || !wrapEl) return; // modal is intussen gesloten/vervangen
+  const key = twelveKey();
+  const m = ISIN_TWELVE_MAP[isin];
+  if (!key) { statusEl.style.display='block'; wrapEl.style.display='none'; statusEl.textContent = 'Vul een Twelve Data API key in om koersgrafieken te zien.'; return; }
+  if (!m) { statusEl.style.display='block'; wrapEl.style.display='none'; statusEl.textContent = 'Geen koersdata beschikbaar voor dit symbool.'; return; }
+
+  statusEl.style.display = 'block';
+  statusEl.textContent = 'Koers laden…';
+  wrapEl.style.display = 'none';
+
+  const sym = ['NASDAQ','NYSE'].includes(m.exchange) ? m.symbol : `${m.symbol}:${m.exchange}`;
+  const outputsize = POS_CHART_PERIODS[period] || 130;
+
+  try {
+    const res = await fetch(`https://api.twelvedata.com/time_series?symbol=${encodeURIComponent(sym)}&interval=1day&outputsize=${outputsize}&apikey=${key}`);
+    const d = await res.json();
+    if (!d || d.status === 'error' || !Array.isArray(d.values) || d.values.length === 0) {
+      statusEl.textContent = 'Geen koersdata beschikbaar' + (d && d.message ? (' (' + d.message + ')') : '') + '.';
+      return;
+    }
+    const values = d.values.slice().sort((a,b) => a.datetime.localeCompare(b.datetime));
+    const labels = values.map(v => {
+      const dt = new Date(v.datetime);
+      return dt.toLocaleDateString('nl-NL', outputsize > 260 ? { day:'2-digit', month:'short', year:'2-digit' } : { day:'2-digit', month:'short' });
+    });
+    const closes = values.map(v => parseFloat(v.close));
+
+    statusEl.style.display = 'none';
+    wrapEl.style.display = 'block';
+
+    const ctx = document.getElementById('posPriceChart').getContext('2d');
+    const gradient = ctx.createLinearGradient(0,0,0,180);
+    gradient.addColorStop(0, 'rgba(79,128,255,0.35)');
+    gradient.addColorStop(1, 'rgba(79,128,255,0)');
+
+    if (posPriceChartInstance) posPriceChartInstance.destroy();
+    const curSym = m.currency === 'USD' ? '$ ' : m.currency === 'GBP' ? '£ ' : '€ ';
+    posPriceChartInstance = new Chart(ctx, {
+      type: 'line',
+      data: { labels, datasets: [{
+        data: closes, borderColor: '#4f80ff', backgroundColor: gradient, fill: true,
+        borderWidth: 2, pointRadius: 0, pointHoverRadius: 4, pointHoverBackgroundColor: '#4f80ff', tension: 0.2
+      }]},
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: '#161c2a', borderColor: '#252d45', borderWidth: 1,
+            titleColor: '#8892b0', bodyColor: '#f0f2f8', padding: 10,
+            callbacks: { label: c => curSym + c.parsed.y.toFixed(2) }
+          }
+        },
+        scales: {
+          x: { grid: { display:false }, ticks: { color:'#4a5475', font:{size:9}, maxTicksLimit:7, maxRotation:0 } },
+          y: { grid: { color:'#1e2540' }, ticks: { color:'#4a5475', font:{size:9} } }
+        }
+      }
+    });
+  } catch(e) {
+    statusEl.style.display = 'block';
+    wrapEl.style.display = 'none';
+    statusEl.textContent = 'Kon koersdata niet ophalen.';
+  }
 }
 
 // ── DASHBOARD ─────────────────────────────────────────────────────
@@ -3074,9 +3205,149 @@ function renderGroei() {
   }
 }
 
+// ── PORTFOLIO VS BENCHMARK ───────────────────────────────────────────
+let benchChartInstance = null;
+async function renderBenchmarkComparison() {
+  const statusEl = document.getElementById('benchStatus');
+  const contentEl = document.getElementById('benchContent');
+  if (!statusEl) return;
+  const key = twelveKey();
+  if (!key) { statusEl.style.display='block'; contentEl.style.display='none'; statusEl.textContent = 'Vul een Twelve Data API key in om deze vergelijking te zien.'; return; }
+
+  // Stortingen ophalen — zelfde brede omschrijving-filter als de Rendement & Groei pagina
+  // (case-insensitive op 'ideal' / 'storting' / 'deposit', i.p.v. exacte match op 'iDEAL Deposit')
+  const toISO = d => { const p=(d||'').split('-'); return p.length===3?`${p[2]}-${p[1]}-${p[0]}`:d; };
+  const cashflows = [];
+  (data.account||[]).forEach(r => {
+    const desc = (r['Omschrijving']||'').toLowerCase();
+    if (!(desc.includes('ideal') || desc.includes('storting') || desc.includes('deposit'))) return;
+    const keys = Object.keys(r);
+    for (let i = 0; i < keys.length; i++) {
+      if (r[keys[i]] === 'EUR' && keys[i+1]) {
+        const n = pn(r[keys[i+1]]);
+        if (n > 0) { cashflows.push({ date: toISO(r['Datum']||''), amount: n }); break; }
+      }
+    }
+  });
+
+  // Fallback: geen losse stortingsregels gevonden in de CSV → gebruik de
+  // (evt. handmatig ingevulde) jaarlijkse netto inleg van de Rendement & Groei-pagina
+  if (cashflows.length === 0 && typeof manualInlegByYear === 'object' && Object.keys(manualInlegByYear).length > 0) {
+    Object.keys(manualInlegByYear).forEach(y => {
+      const amt = manualInlegByYear[y];
+      if (amt > 0) cashflows.push({ date: `${y}-07-01`, amount: amt });
+    });
+  }
+
+  if (cashflows.length === 0) {
+    statusEl.style.display='block'; contentEl.style.display='none';
+    statusEl.textContent = 'Geen stortingen gevonden — vul desnoods eerst de jaarlijkse inleg handmatig in op de pagina Rendement & Groei.';
+    return;
+  }
+  cashflows.sort((a,b) => a.date.localeCompare(b.date));
+
+  const firstDate = new Date(cashflows[0].date);
+  const daysSince = Math.ceil((Date.now() - firstDate.getTime()) / 86400000);
+  const outputsize = Math.min(5000, Math.max(30, Math.ceil(daysSince * 0.75) + 10)); // ruim genoeg incl. weekenden
+
+  try {
+    const res = await fetch(`https://api.twelvedata.com/time_series?symbol=SPY&interval=1day&outputsize=${outputsize}&apikey=${key}`);
+    const d = await res.json();
+    if (!d || d.status === 'error' || !Array.isArray(d.values) || d.values.length === 0) {
+      statusEl.style.display='block'; contentEl.style.display='none';
+      statusEl.textContent = 'Geen S&P 500-data beschikbaar' + (d && d.message ? (' (' + d.message + ')') : '') + '.';
+      return;
+    }
+    const values = d.values.slice().sort((a,b) => a.datetime.localeCompare(b.datetime));
+    const closes = values.map(v => ({ date: v.datetime, close: parseFloat(v.close) }));
+
+    // Dichtstbijzijnde handelsdag op-of-vóór een gegeven datum
+    function closeOnOrBefore(dateStr) {
+      let best = null;
+      for (const c of closes) { if (c.date <= dateStr) best = c; else break; }
+      return best ? best.close : closes[0].close;
+    }
+
+    const lastClose = closes[closes.length-1].close;
+    let benchValue = 0;
+    cashflows.forEach(cf => {
+      const priceAtDeposit = closeOnOrBefore(cf.date);
+      benchValue += cf.amount * (lastClose / priceAtDeposit);
+    });
+
+    // Huidige portfoliowaarde (aandelen + cash) — zelfde opbouw als het dashboard
+    let stockEUR = 0, cashEUR = 0;
+    (data.portfolio||[]).forEach(r => {
+      if ((r['Product']||'').includes('CASH')) { cashEUR += pn(r['Waarde in EUR']); }
+      else if (r['Product']) { stockEUR += getBestWaardeEUR(r); }
+    });
+    const portfolioNow = stockEUR + cashEUR;
+    const totalDeposited = cashflows.reduce((s,c) => s + c.amount, 0);
+
+    const portfolioPct = totalDeposited > 0 ? (portfolioNow/totalDeposited - 1) * 100 : 0;
+    const benchPct = totalDeposited > 0 ? (benchValue/totalDeposited - 1) * 100 : 0;
+    const diffPct = portfolioPct - benchPct;
+
+    const eurFmt = v => '€ ' + Math.round(v).toLocaleString('nl-NL');
+    document.getElementById('benchPortfolioNow').textContent = eurFmt(portfolioNow);
+    document.getElementById('benchPortfolioPct').textContent = (portfolioPct>=0?'+':'') + portfolioPct.toFixed(1) + '% t.o.v. inleg';
+    document.getElementById('benchSpxNow').textContent = eurFmt(benchValue);
+    document.getElementById('benchSpxPct').textContent = (benchPct>=0?'+':'') + benchPct.toFixed(1) + '% t.o.v. inleg';
+    const diffEl = document.getElementById('benchDiff');
+    diffEl.textContent = (diffPct>=0?'+':'') + diffPct.toFixed(1) + '%';
+    diffEl.className = 'kpi-value ' + (diffPct>=0?'pos-val':'neg-val');
+    const diffCard = document.getElementById('benchDiffCard');
+    diffCard.style.setProperty('--kpi-color', diffPct>=0?'#34d399':'#f87171');
+    diffCard.style.setProperty('--kpi-bg', diffPct>=0?'#081a10':'#200a0a');
+    diffCard.style.setProperty('--kpi-border', diffPct>=0?'#0f2a1a':'#3a1010');
+
+    statusEl.style.display = 'none';
+    contentEl.style.display = 'block';
+
+    // Grafiek: S&P 500-indexverloop (=100 bij eerste storting) + stortingsmarkers
+    const baseClose = closeOnOrBefore(cashflows[0].date);
+    const chartValues = closes.filter(c => c.date >= cashflows[0].date);
+    const labels = chartValues.map(c => new Date(c.date).toLocaleDateString('nl-NL',{day:'2-digit',month:'short',year:'2-digit'}));
+    const indexed = chartValues.map(c => (c.close/baseClose)*100);
+    const depositDateSet = new Set(cashflows.map(c => c.date));
+    const pointRadii = chartValues.map(c => depositDateSet.has(c.date) ? 3 : 0);
+
+    const ctx = document.getElementById('benchChart').getContext('2d');
+    if (benchChartInstance) benchChartInstance.destroy();
+    benchChartInstance = new Chart(ctx, {
+      type: 'line',
+      data: { labels, datasets: [{
+        data: indexed, borderColor:'#4f80ff', backgroundColor:'transparent', borderWidth:1.8,
+        pointRadius: pointRadii, pointBackgroundColor:'#fbbf24', pointBorderColor:'#fbbf24', tension:0.15
+      }]},
+      options: {
+        responsive:true, maintainAspectRatio:false,
+        interaction:{ mode:'index', intersect:false },
+        plugins: {
+          legend:{display:false},
+          tooltip:{
+            backgroundColor:'#161c2a', borderColor:'#252d45', borderWidth:1,
+            titleColor:'#8892b0', bodyColor:'#f0f2f8', padding:10,
+            callbacks:{ label: c => 'S&P 500 index: ' + c.parsed.y.toFixed(1) }
+          }
+        },
+        scales: {
+          x:{ grid:{display:false}, ticks:{ color:'#4a5475', font:{size:9}, maxTicksLimit:8, maxRotation:0 } },
+          y:{ grid:{ color:'#1e2540' }, ticks:{ color:'#4a5475', font:{size:9} } }
+        }
+      }
+    });
+  } catch(e) {
+    statusEl.style.display = 'block';
+    contentEl.style.display = 'none';
+    statusEl.textContent = 'Kon S&P 500-data niet ophalen.';
+  }
+}
+
 function renderAnalyse() {
   updateScenario(); // Init the scenario calculator
   updateDCF(); // Init the DCF calculator
+  renderBenchmarkComparison();
   const rows = data.portfolio.filter(r => r['Product'] && !r['Product'].includes('CASH'));
   const gak = calcGAK();
   const COLORS = ['#4f80ff','#34d399','#fbbf24','#f87171','#a78bfa','#38bdf8','#fb923c','#4ade80','#e879f9','#94a3b8'];
