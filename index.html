@@ -2838,7 +2838,16 @@ function loadCachedFiles() {
 
 // ── BUILD ─────────────────────────────────────────────────────────
 function buildDashboard() {
-  loadSavedInleg();
+  if (hasNewUpload) {
+    // Bij een verse CSV-upload mag een oude handmatige inleg-override (van de
+    // inmiddels verwijderde "Inleg automatisch berekend"-banner) nooit meer
+    // stilzwijgend de nieuw berekende Netto Ingelegd blijven overschrijven —
+    // anders lijkt het net of een nieuwe upload niks doet.
+    manualInleg = null;
+    try { localStorage.removeItem('degiro_inleg'); } catch(e) {}
+  } else {
+    loadSavedInleg();
+  }
   loadManualPrices();
   loadManualGAK();
   loadLiveCache(); // laatst bekende live koersen alvast tonen, voordat verse data binnenkomt
