@@ -179,6 +179,13 @@ body {
   cursor: pointer; transition: all .15s;
 }
 .refresh-btn:hover { background: #1a2550; border-color: var(--accent); }
+.topbar-upload-btn {
+  background: linear-gradient(135deg, #1a3060, #1e3878) !important;
+  border-color: #2a4a90 !important;
+  color: #fff !important;
+  box-shadow: 0 2px 8px rgba(30,56,120,.4);
+}
+.topbar-upload-btn:hover { background: linear-gradient(135deg, #1e3878, #23409a) !important; }
 
 /* ── UPLOAD SCREEN ── */
 .upload-screen {
@@ -200,7 +207,8 @@ body {
 .upload-card h2 { font-size: 22px; font-weight: 700; color: var(--text1); margin-bottom: 8px; }
 .upload-card > p { font-size: 14px; color: var(--text2); margin-bottom: 32px; line-height: 1.7; }
 
-.upload-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 28px; }
+.upload-grid { display: flex; justify-content: center; gap: 12px; margin-bottom: 28px; }
+.upload-grid .upload-slot { width: 100%; max-width: 280px; }
 .upload-slot {
   background: var(--bg3); border: 1.5px dashed var(--border2);
   border-radius: 12px; padding: 22px 12px;
@@ -585,7 +593,7 @@ td.num strong { color: var(--text1); font-weight: 600; }
   .kpi-grid { grid-template-columns: 1fr; }
   .topbar-time { display: none; }
   .refresh-btn span, .refresh-btn { font-size: 11px; padding: 6px 10px; }
-  #refreshBtn, #debugBtn, #testTwelveBtn { padding: 6px 8px; }
+  #refreshBtn, #diagBtn, #topbarUploadBtn { padding: 6px 8px; }
   .page-sub { font-size: 12px; }
   table { min-width: 500px; }
   .upload-card h2 { font-size: 18px; }
@@ -715,15 +723,16 @@ td.num strong { color: var(--text1); font-weight: 600; }
     <div class="topbar-right" style="position:relative">
       <button class="theme-toggle-btn" id="themeToggleBtn" onclick="toggleTheme()" title="Thema wisselen">🌙</button>
       <span class="topbar-time" id="lastUpdate"></span>
+      <button class="refresh-btn topbar-upload-btn" id="topbarUploadBtn" onclick="resetToUpload()" style="display:none" title="Nieuwe CSV uploaden">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        CSV uploaden
+      </button>
       <button class="refresh-btn" id="refreshBtn" onclick="refreshAll()" style="display:none">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
         Verversen
       </button>
-      <button class="refresh-btn" id="debugBtn" onclick="debugFinnhub()" style="display:none;background:#1a1000;border-color:#3a2a00;color:var(--amber)">
-        🔍 Test API
-      </button>
-      <button class="refresh-btn" id="testTwelveBtn" onclick="testTwelveData()" style="display:none;background:#0a1a10;border-color:#1a3a20;color:#4ade80">
-        🔍 Test Twelve Data
+      <button class="refresh-btn" id="diagBtn" onclick="debugKoersen()" style="display:flex;background:#1a1000;border-color:#3a2a00;color:var(--amber)" title="Werkt ook al vóórdat je een dashboard hebt geopend">
+        🔍 Diagnose koersen
       </button>
       <button class="refresh-btn" id="alphaBtn" onclick="toggleAlphaPopover()" style="display:none;background:#1a1400;border-color:#3a2a00;color:#f0b429">
         🔑 EU-koersen
@@ -752,22 +761,8 @@ td.num strong { color: var(--text1); font-weight: 600; }
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#6a9aff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
       </div>
       <h2>DEGIRO Portfolio Dashboard</h2>
-      <p>Upload je drie DEGIRO exportbestanden om je portfolio te analyseren.<br>Alle data blijft lokaal in je browser — er wordt niets verstuurd.</p>
+      <p>Upload je DEGIRO Account.csv-exportbestand om je portfolio te analyseren.<br>Alle data blijft lokaal in je browser — er wordt niets verstuurd.</p>
       <div class="upload-grid">
-        <div class="upload-slot" id="slot-transactions" onclick="triggerUpload('transactions')" ondragover="dragOver(event,'transactions')" ondragleave="dragLeave('transactions')" ondrop="dropFile(event,'transactions')">
-          <div class="upload-slot-icon">
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#4a8fe0" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-          </div>
-          <div class="upload-slot-name">Transactions.csv</div>
-          <div class="upload-slot-status" id="status-transactions">Klik of sleep</div>
-        </div>
-        <div class="upload-slot" id="slot-portfolio" onclick="triggerUpload('portfolio')" ondragover="dragOver(event,'portfolio')" ondragleave="dragLeave('portfolio')" ondrop="dropFile(event,'portfolio')">
-          <div class="upload-slot-icon">
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#4a8fe0" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-          </div>
-          <div class="upload-slot-name">Portfolio.csv</div>
-          <div class="upload-slot-status" id="status-portfolio">Klik of sleep</div>
-        </div>
         <div class="upload-slot" id="slot-account" onclick="triggerUpload('account')" ondragover="dragOver(event,'account')" ondragleave="dragLeave('account')" ondrop="dropFile(event,'account')">
           <div class="upload-slot-icon">
             <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#4a8fe0" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
@@ -783,17 +778,7 @@ td.num strong { color: var(--text1); font-weight: 600; }
       <button class="start-btn" id="cancelUploadBtn" onclick="cancelUpload()" style="display:none; background: var(--bg3); border: 1px solid var(--border2); color: var(--text2); margin-left: 10px; box-shadow: none;">
         Annuleren
       </button>
-      <div class="api-key-row">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6a8fd4" stroke-width="2"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
-        <input type="text" id="apiKeyInput" placeholder="Finnhub API key (backup)" value="d8apcr9r01qk20so9a1gd8apcr9r01qk20so9a20">
-        <span class="api-status" id="apiStatus"></span>
-      </div>
-      <div class="api-key-row" style="margin-top:8px">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
-        <input type="text" id="twelveKeyInput" placeholder="Twelve Data API key (primair — betere koersen)" value="4b62bbc35a8d4835a37dcb5777e377f5">
-        <span class="api-status" id="twelveStatus"></span>
-      </div>
-      <p class="privacy-note">🔒 Jouw financiële data verlaat nooit je browser</p>
+      <p class="privacy-note">🔒 Jouw financiële data verlaat nooit je browser — je API keys vul je in via "🔍 Diagnose koersen" boven in de balk</p>
     </div>
   </div>
 
@@ -1892,6 +1877,18 @@ let charts = {};
 let manualInleg = null;
 let liveprices = {}; // isin -> { price, currency, ticker }
 let isinToTicker = {}; // cache
+// Laatste resultaat per koersbron, zodat "🔍 Diagnose koersen" altijd kan tonen wat er bij het
+// laatst laden is gebeurd — voorheen stond dit alleen als klein tekstje naast de API-key-velden
+// op het uploadscherm (bleef daar ook onnodig zichtbaar staan als je terugging naar dat scherm).
+let lastKoersStatus = { twelvedata: null, finnhub: null };
+function reportKoersStatus(source, text, cls) {
+  lastKoersStatus[source] = { text, cls: cls || '', time: new Date() };
+  // Oude losse statusveldjes naast de API-key-inputs bestaan niet meer, maar mocht een element
+  // met deze id nog ergens bestaan dan wordt het (harmless) meegenomen.
+  const legacyId = source === 'twelvedata' ? 'twelveStatus' : 'apiStatus';
+  const el = document.getElementById(legacyId);
+  if (el) { el.textContent = text; el.className = 'api-status ' + (cls || ''); }
+}
 let manualPrices = {}; // isin -> priceEur (handmatig ingevoerd)
 let manualGAK = {};    // isin -> gakEurPerStuk (handmatig GAK override voor stock splits etc.)
 let userOwnReturnRate = null; // laatst berekende XIRR (renderGroei) — hergebruikt door de Projectie-pagina
@@ -2002,10 +1999,39 @@ function clearManualPrice(isin) {
 }
 
 // ── FINNHUB ───────────────────────────────────────────────────────
-function apiKey() { return (document.getElementById('apiKeyInput').value || '').trim(); }
+// De key-velden staan niet meer permanent op het uploadscherm, maar alleen (tijdelijk, terwijl
+// hij open is) in de "🔍 Diagnose koersen"-popup — vandaar dat hier eerst gekeken wordt of het
+// veld toevallig net in beeld is, en anders teruggevallen wordt op de opgeslagen waarde.
+function apiKey() {
+  const fromInput = (document.getElementById('apiKeyInput')?.value || '').trim();
+  if (fromInput) return fromInput;
+  try { return (localStorage.getItem('degiro_finnhub_key') || '').trim(); } catch(e) { return ''; }
+}
+function saveApiKey() {
+  const val = (document.getElementById('apiKeyInput')?.value || '').trim();
+  try { if (val) localStorage.setItem('degiro_finnhub_key', val); } catch(e) {}
+}
 
 // ── TWELVE DATA ─────────────────────────────────────────────────
-function twelveKey() { return (document.getElementById('twelveKeyInput')?.value || '').trim(); }
+function twelveKey() {
+  const fromInput = (document.getElementById('twelveKeyInput')?.value || '').trim();
+  if (fromInput) return fromInput;
+  try { return (localStorage.getItem('degiro_twelve_key') || '').trim(); } catch(e) { return ''; }
+}
+function saveTwelveKey() {
+  const val = (document.getElementById('twelveKeyInput')?.value || '').trim();
+  try { if (val) localStorage.setItem('degiro_twelve_key', val); } catch(e) {}
+}
+// Eenmalige migratie: de twee keys stonden hiervoor hardcoded als value="..." in het (inmiddels
+// verwijderde) uploadscherm-veld. Zodra iemand die pagina ooit had geopend stond de waarde al in
+// het DOM, maar nooit in localStorage — dus zonder deze seed zou het weghalen van dat veld zijn
+// bestaande, werkende keys laten "verdwijnen" totdat hij ze opnieuw intypt in Diagnose koersen.
+(function seedLegacyApiKeys() {
+  try {
+    if (!localStorage.getItem('degiro_finnhub_key')) localStorage.setItem('degiro_finnhub_key', 'd8apcr9r01qk20so9a1gd8apcr9r01qk20so9a20');
+    if (!localStorage.getItem('degiro_twelve_key')) localStorage.setItem('degiro_twelve_key', '4b62bbc35a8d4835a37dcb5777e377f5');
+  } catch(e) {}
+})();
 
 // ISIN → Twelve Data ticker (met exchange voor niet-US aandelen)
 const ISIN_TWELVE_MAP = {
@@ -2094,9 +2120,7 @@ async function loadTwelveDataPrices() {
   const key = twelveKey();
   if (!key) return false;
 
-  const statusEl = document.getElementById('twelveStatus') || document.getElementById('apiStatus');
-  statusEl.textContent = '⟳ Twelve Data laden…';
-  statusEl.className = 'api-status';
+  reportKoersStatus('twelvedata', '⟳ Twelve Data laden…', '');
 
   const rows = data.portfolio.filter(r => r['Product'] && !r['Product'].includes('CASH'));
   const isins = rows.map(r => r['Symbool/ISIN']).filter(Boolean).filter(isin => !AUTO_PRICE_EXCLUDE.includes(isin));
@@ -2112,7 +2136,10 @@ async function loadTwelveDataPrices() {
     isinToSym[isin] = sym;
   });
 
-  if (!symbolParts.length) return false;
+  if (!symbolParts.length) {
+    reportKoersStatus('twelvedata', '✗ Geen posities met een bekend Twelve Data-symbool', 'err');
+    return false;
+  }
 
   // Één request voor alle prijzen
   let priceData = {};
@@ -2125,8 +2152,7 @@ async function loadTwelveDataPrices() {
       priceData = { [symbolParts[0]]: priceData };
     }
   } catch(e) {
-    statusEl.textContent = '✗ Twelve Data verbindingsfout';
-    statusEl.className = 'api-status err';
+    reportKoersStatus('twelvedata', '✗ Twelve Data verbindingsfout: ' + e.message, 'err');
     return false;
   }
 
@@ -2155,8 +2181,7 @@ async function loadTwelveDataPrices() {
   });
 
   if (success > 0) {
-    statusEl.textContent = `✓ ${success}/${isins.length} koersen via Twelve Data`;
-    statusEl.className = 'api-status ok';
+    reportKoersStatus('twelvedata', `✓ ${success}/${isins.length} koersen via Twelve Data`, 'ok');
     // Haal P/E en P/S op via statistics — ook batch (1 request)
     fetchTwelveStatsBatch(isins, key, getRate);
     renderDashboard();
@@ -2164,8 +2189,7 @@ async function loadTwelveDataPrices() {
     if (ap && ap.style.display !== 'none') renderAnalyse();
     return true;
   }
-  statusEl.textContent = '✗ Twelve Data geen data — controleer API key';
-  statusEl.className = 'api-status err';
+  reportKoersStatus('twelvedata', '✗ Twelve Data geen data — controleer API key', 'err');
   return false;
 }
 
@@ -2616,8 +2640,7 @@ function maybeLoadAlphaVantage() {
 
 async function loadLivePrices() {
   if (!apiKey()) return;
-  const statusEl = document.getElementById('apiStatus');
-  statusEl.textContent = '⟳ Koersen ophalen via Finnhub…'; statusEl.className = 'api-status';
+  reportKoersStatus('finnhub', '⟳ Koersen ophalen via Finnhub…', '');
 
   const rows = data.portfolio.filter(r => r['Product'] && !r['Product'].includes('CASH') && !AUTO_PRICE_EXCLUDE.includes(r['Symbool/ISIN']));
   const fxCache = {};
@@ -2652,23 +2675,20 @@ async function loadLivePrices() {
     liveprices[isin] = { price, priceEur: price * fxRate, currency, ticker, pe: metrics.pe, ps: metrics.ps, source: 'finnhub' };
     saveLiveCache(isin, liveprices[isin]);
     // Update status progressively
-    statusEl.textContent = `⟳ ${Object.keys(liveprices).length}/${rows.length} geladen…`;
+    reportKoersStatus('finnhub', `⟳ ${Object.keys(liveprices).length}/${rows.length} geladen…`, '');
     success++;
   }));
 
   if (success > 0) {
     const total = rows.length;
-    statusEl.textContent = `✓ ${success}/${total} koersen geladen`;
-    statusEl.className = 'api-status ok';
-    if (success < total) {
-      statusEl.textContent += ` (${total - success} via slotkoers)`;
-    }
+    let txt = `✓ ${success}/${total} koersen geladen`;
+    if (success < total) txt += ` (${total - success} via slotkoers)`;
+    reportKoersStatus('finnhub', txt, 'ok');
     renderDashboard();
     const ap = document.getElementById('page-analyse');
     if (ap && ap.style.display !== 'none') renderAnalyse();
   } else {
-    statusEl.textContent = '✗ Geen live koersen — slotkoers wordt gebruikt';
-    statusEl.className = 'api-status err';
+    reportKoersStatus('finnhub', '✗ Geen live koersen — slotkoers wordt gebruikt', 'err');
   }
 }
 
@@ -2708,6 +2728,14 @@ function splitLine(line) {
 function pn(v) {
   if (!v && v !== 0) return 0;
   return parseFloat(String(v).replace(/\./g,'').replace(',','.')) || 0;
+}
+// Tegenhanger van pn(): een JS-getal terugzetten naar hetzelfde Nederlandse komma-decimaal-
+// formaat (bv. 1234.5 → "1234,5") zodat een zelf-samengestelde rijwaarde later weer correct
+// door pn() wordt teruggelezen — nodig overal waar we (net als parseCSV zou doen) een getal als
+// string in een rij-object zetten, bv. bij het afleiden van transacties/posities uit Account.csv.
+function numToDutch(n, decimals) {
+  const s = (decimals != null) ? Number(n).toFixed(decimals) : String(n);
+  return s.replace('.', ',');
 }
 function eur(n, sign=false) {
   const s = Math.abs(n).toLocaleString('nl-NL',{minimumFractionDigits:2,maximumFractionDigits:2});
@@ -2793,6 +2821,263 @@ function xirr(cashflows) {
   return (lo + hi) / 2;
 }
 
+// ── POSITIES + TRANSACTIES AFLEIDEN UIT ACCOUNT.CSV (experimenteel) ──────────
+// DEGIRO/flatexDEGIRO's Account.csv bevat voor elke koop/verkoop een eigen regel met een
+// ingevulde Product- en ISIN-kolom en een Omschrijving in het vaste formaat
+// "Koop <aantal> @ <koers> <valuta>" / "Verkoop <aantal> @ <koers> <valuta>" (valuta ontbreekt
+// wanneer de order al in EUR was). Dat maakt het in principe mogelijk om, i.p.v. Portfolio.csv en
+// Transactions.csv los te uploaden, transacties en actuele posities rechtstreeks uit Account.csv
+// te reconstrueren. Bekende, bewuste beperking: bijzondere corporate-actions (ISIN-wijziging,
+// fusie, spin-off) hebben een afwijkend Omschrijving-formaat en worden hier NIET automatisch
+// meegerekend — die regels worden overgeslagen en apart teruggegeven (`skipped`) zodat ze nooit
+// stilzwijgend verkeerd worden meegeteld i.p.v. gewoon fout te rekenen.
+//
+// STATUS: dit IS de databron van de app — buildDashboard() gebruikt dit i.p.v. los geüploade
+// Portfolio.csv/Transactions.csv. Uitgebreid gevalideerd (2026-09-09) tegen Bulents eigen echte
+// bestanden via een tijdelijke vergelijkingstool, inclusief de delisting/split-aanpassingen
+// hieronder — pas daarna is de upload van Portfolio.csv/Transactions.csv verwijderd.
+// Geen "^"-anker: DEGIRO zet soms een prefix vóór "Koop"/"Verkoop", bv. "DELISTING: Verkoop 540
+// @ 0 USD" of "PRODUCTWIJZIGING : Koop 540 @ 0,0891 USD" — dat zijn qua effect gewoon een normale
+// verkoop/koop (delisting = complete verkoop tegen €0, productwijziging = gelijke koop+verkoop die
+// netto op nul uitkomt) en hoeven dus geen aparte behandeling, zolang het patroon zelf herkend wordt.
+const ACCOUNT_TRADE_RE = /(Koop|Verkoop)\s+([\d.,]+)\s*@\s*([\d.,]+)\s*([A-Z]{3})?/i;
+const ACCOUNT_CORP_ACTION_RE = /wijziging isin|fusie|spin-?off/i;
+// Aandelensplitsing: "SPLIT AANPASSING: 24 CrowdStrike Holdings, Inc. Class A @ 193,185 USD
+// (US22788C1053)" — geen "Koop"/"Verkoop"-woord, dus een apart patroon; de richting (aandelen
+// erbij of eraf) volgt uit het teken van de geldmutatie, net als bij een gewone koop/verkoop.
+const SPLIT_ADJ_RE = /^SPLIT AANPASSING:\s*([\d.,]+)\s+.+?@\s*([\d.,]+)\s*([A-Z]{3})?\s*\(([A-Z0-9]+)\)/i;
+// Een echte ISIN is altijd 12 tekens: 2 letters (landcode) + 9 alfanumeriek + 1 controlecijfer.
+// Valutaconversies ("Koop 4000 @ 1,08 USD" met Product "EUR/USD") matchen wel het Koop/Verkoop-
+// patroon maar hebben geen echte ISIN — die moeten er dus apart uitgefilterd worden, anders
+// verschijnen ze als een fantoom-"aandeel" in de afgeleide portefeuille.
+const ISIN_RE = /^[A-Z]{2}[A-Z0-9]{9}\d$/;
+
+// Zelfde truc als extractAccountBedrag(), maar dan voor het TWEEDE valuta+bedrag-paar in de rij
+// (het lopende Saldo i.p.v. de Mutatie van déze regel) — nodig om de vrije cash-positie te schatten.
+function extractAccountSaldo(r) {
+  const keys = Object.keys(r);
+  let found = 0;
+  for (let i = 0; i < keys.length; i++) {
+    if (/^[A-Z]{3}$/.test(r[keys[i]]) && i + 1 < keys.length) {
+      found++;
+      if (found === 2) return { amount: pn(r[keys[i + 1]]), currency: r[keys[i]] };
+    }
+  }
+  return { amount: 0, currency: '' };
+}
+
+// Stap 1 (synchroon, geen netwerk nodig — dus goed unit-testbaar): parse de ruwe koop/verkoop-
+// regels + de daaraan gekoppelde transactiekosten-regel uit Account.csv. Bedragen blijven in hun
+// oorspronkelijke valuta; de EUR-omrekening gebeurt pas in buildTransactionsFromAccount().
+function parseAccountTrades(accountRows) {
+  const trades = [];
+  const skipped = [];   // corporate actions / regels zonder bruikbare ISIN of Product
+  const fxSkipped = [];  // valutaconversies (Koop/Verkoop-formaat maar geen echt aandeel)
+  // Split-aanpassingen worden PER (ISIN + datum) genet tot één transactie i.p.v. los toegevoegd.
+  // Reden: een split levert meestal een "oud lot eruit" + "nieuw lot erin"-paar (of meer, bij
+  // meerdere historische aankooplots). Zouden we die als twee losse koop/verkoop-transacties
+  // meegeven, dan trekt calcGAK() bij de "eruit"-poot een evenredig deel van de ECHTE kostenbasis
+  // af (want dat is precies hoe een normale verkoop GAK bijwerkt) terwijl de "erin"-poot met
+  // totaal=0 niets terugzet — per saldo verdwijnt er dan kostenbasis en klopt de GAK niet meer.
+  // Eén genette transactie (netto aantal, totaal=0) laat de kostenbasis wél intact: totaal
+  // ingelegd bedrag blijft gelijk, alleen het aantal aandelen (en dus de GAK per stuk) verandert.
+  const splitAdjByKey = {};
+  let lastTrade = null;
+  (accountRows || []).forEach(r => {
+    const desc = (r['Omschrijving'] || '').trim();
+    if (!desc) return;
+    if (/transactiekosten/i.test(desc)) {
+      if (lastTrade) {
+        const { amount, currency } = extractAccountBedrag(r);
+        if (!lastTrade._kostenValuta) lastTrade._kostenValuta = currency || 'EUR';
+        lastTrade._kostenRaw = (lastTrade._kostenRaw || 0) + Math.abs(amount);
+      }
+      return;
+    }
+    const splitM = desc.match(SPLIT_ADJ_RE);
+    if (splitM) {
+      const isin = (splitM[4] || r['ISIN'] || '').trim();
+      const product = (r['Product'] || '').trim();
+      const datum = r['Datum'] || '';
+      if (isin && product && ISIN_RE.test(isin)) {
+        const aantal = pn(splitM[1]);
+        const { amount: mutatieBedrag } = extractAccountBedrag(r);
+        // Richting volgt uit het teken van de geldmutatie (net als bij een gewone koop/verkoop):
+        // negatief = aandelen erbij, positief = aandelen eraf.
+        const richting = mutatieBedrag < 0 ? 1 : -1;
+        const key = isin + '|' + datum;
+        if (!splitAdjByKey[key]) splitAdjByKey[key] = { isin, product, datum, aantal: 0 };
+        splitAdjByKey[key].aantal += richting * aantal;
+        splitAdjByKey[key].product = product;
+      } else {
+        skipped.push({ desc, datum, isin, product });
+      }
+      lastTrade = null;
+      return;
+    }
+    const m = desc.match(ACCOUNT_TRADE_RE);
+    if (!m) { lastTrade = null; return; }
+    if (ACCOUNT_CORP_ACTION_RE.test(desc)) {
+      skipped.push({ desc, datum: r['Datum'] || '', isin: (r['ISIN'] || '').trim(), product: (r['Product'] || '').trim() });
+      lastTrade = null; return;
+    }
+    const isin = (r['ISIN'] || '').trim();
+    const product = (r['Product'] || '').trim();
+    if (!isin || !product) {
+      skipped.push({ desc, datum: r['Datum'] || '', isin, product });
+      lastTrade = null; return;
+    }
+    if (!ISIN_RE.test(isin)) {
+      // Geen geldige ISIN (bv. een valutaconversie zoals "EUR/USD") — geen aandeel, dus niet
+      // meetellen als positie, maar ook niet als "overgeslagen corporate action" rapporteren.
+      fxSkipped.push({ desc, datum: r['Datum'] || '', isin, product });
+      lastTrade = null; return;
+    }
+    const richting = m[1].toLowerCase() === 'koop' ? 1 : -1;
+    const aantal = pn(m[2]);
+    const koers = pn(m[3]);
+    const { amount: mutatieBedrag, currency: mutatieValuta } = extractAccountBedrag(r);
+    const trade = {
+      _isin: isin,
+      _product: product,
+      _datum: r['Datum'] || '',
+      _aantal: richting * aantal,
+      _koers: koers,
+      _mutatieBedrag: mutatieBedrag,
+      _mutatieValuta: mutatieValuta || 'EUR',
+      _kostenRaw: 0,
+      _kostenValuta: 'EUR',
+    };
+    trades.push(trade);
+    lastTrade = trade;
+  });
+
+  // Genette split-aanpassingen alsnog toevoegen als één transactie per (ISIN + datum), met
+  // totaal=0 zodat de kostenbasis intact blijft (zie toelichting hierboven).
+  Object.values(splitAdjByKey).forEach(s => {
+    if (!s.aantal) return; // netto nul (bv. exact tegengestelde lots) — geen wijziging nodig
+    trades.push({
+      _isin: s.isin, _product: s.product, _datum: s.datum,
+      _aantal: s.aantal, _koers: 0,
+      _mutatieBedrag: 0, _mutatieValuta: 'EUR',
+      _kostenRaw: 0, _kostenValuta: 'EUR',
+    });
+  });
+
+  // Op datum sorteren: de split-aanpassingen zijn hierboven achteraan toegevoegd, en Account.csv
+  // zelf staat niet altijd gegarandeerd chronologisch — downstream logica (GAK, "laatst bekende
+  // koers"-fallback) gaat uit van chronologische volgorde.
+  const toISOSort = d => { const p = (d || '').split('-'); return p.length === 3 ? `${p[2]}-${p[1]}-${p[0]}` : d; };
+  trades.sort((a, b) => toISOSort(a._datum).localeCompare(toISOSort(b._datum)));
+
+  return { trades, skipped, fxSkipped };
+}
+
+// Stap 2 (async — haalt bij niet-EUR transacties historische wisselkoersen op): zet de ruwe
+// trades om naar EXACT dezelfde rijvorm als Transactions.csv normaal aanlevert, zodat de rest van
+// de app (GAK, FIFO-winst/verlies, maandelijkse aan/verkopen-grafieken, etc.) later ongewijzigd
+// zou kunnen blijven werken als we hierop overstappen.
+async function buildTransactionsFromAccount(accountRows) {
+  const { trades, skipped, fxSkipped } = parseAccountTrades(accountRows);
+  if (trades.length === 0) return { transactions: [], skipped, fxSkipped };
+
+  const toISO = d => { const p = (d || '').split('-'); return p.length === 3 ? `${p[2]}-${p[1]}-${p[0]}` : null; };
+  const currencies = [...new Set(trades.flatMap(t => [t._mutatieValuta, t._kostenValuta]).filter(c => c && c !== 'EUR'))];
+  let fxHist = null;
+  if (currencies.length > 0) {
+    const dates = trades.map(t => toISO(t._datum)).filter(Boolean).sort();
+    if (dates.length > 0) fxHist = await ensureFxHistory(currencies, dates[0], dates[dates.length - 1]);
+  }
+  const toEur = (amount, currency, datumDDMMYYYY) => {
+    if (!currency || currency === 'EUR') return amount;
+    const iso = toISO(datumDDMMYYYY);
+    return (fxHist && iso) ? toEURHist(amount, currency, iso, fxHist) : amount * (FX_FALLBACK_EUR_PER_UNIT[currency] || 1);
+  };
+
+  const transactions = trades.map(t => {
+    const totaalEur = toEur(t._mutatieBedrag, t._mutatieValuta, t._datum);
+    const kostenEur = t._kostenRaw ? toEur(t._kostenRaw, t._kostenValuta, t._datum) : 0;
+    return {
+      'Datum': t._datum,
+      'Product': t._product,
+      'ISIN': t._isin,
+      'Aantal': numToDutch(t._aantal),
+      'Koers': numToDutch(t._koers),
+      'Totaal EUR': numToDutch(totaalEur, 2),
+      'Transactiekosten en/of kosten van derden EUR': kostenEur ? numToDutch(-Math.abs(kostenEur), 2) : '0',
+      _aantal: t._aantal,
+      _koers: t._koers,
+      _totaal: totaalEur,
+      _kosten: kostenEur,
+      _product: t._product,
+      _datum: t._datum,
+      _beurs: '',
+    };
+  });
+  return { transactions, skipped, fxSkipped };
+}
+
+// Stap 3: actuele posities (Portfolio.csv-vervanger) opbouwen door alle afgeleide transacties
+// per ISIN te salderen. Alleen posities met een nog-openstaand (positief) aantal blijven over —
+// volledig verkochte posities horen thuis bij "Verkochte Aandelen", niet bij de portfoliotabel.
+// Een losse CASH-rij (zoals Portfolio.csv die ook heeft) wordt geschat via het laatst bekende
+// EUR-Saldo in Account.csv.
+function buildPortfolioFromTransactions(transactions, accountRows) {
+  const byIsin = {};
+  transactions.forEach(t => {
+    const isin = t['ISIN'];
+    if (!byIsin[isin]) byIsin[isin] = { product: t['Product'], aantal: 0, laatsteKoersEur: 0 };
+    byIsin[isin].aantal += t._aantal;
+    byIsin[isin].product = t['Product'];
+    // t._totaal staat al in EUR (buildTransactionsFromAccount rekent niet-EUR om) — dus de
+    // EUR-prijs per aandeel van déze transactie is gewoon totaal/aantal, ongeacht de valuta
+    // waarin de order oorspronkelijk was. Een split-aanpassing heeft bewust totaal=0 (zie
+    // buildTransactionsFromAccount) — die mag de laatst bekende prijs dus NOOIT naar €0 trekken,
+    // anders toont de fallback-waardering onterecht €0 zodra een split de laatste mutatie was.
+    if (t._aantal && t._totaal) byIsin[isin].laatsteKoersEur = Math.abs(t._totaal / t._aantal);
+  });
+  const posities = Object.keys(byIsin)
+    .filter(isin => byIsin[isin].aantal > 0.0001)
+    .map(isin => {
+      const p = byIsin[isin];
+      return {
+        'Product': p.product,
+        'Symbool/ISIN': isin,
+        'Aantal': numToDutch(p.aantal),
+        // Voorlopige schatting o.b.v. de laatst bekende (naar EUR omgerekende) transactiekoers —
+        // wordt in de praktijk meteen overschreven zodra er een live koers binnenkomt; puur een
+        // fallback-fallback voor als geen enkele koersbron iets teruggeeft.
+        'Waarde in EUR': numToDutch(p.aantal * p.laatsteKoersEur, 2),
+      };
+    });
+
+  // Cash-positie: laatste rij met een EUR-Saldo, op datum (niet op bestandsvolgorde — DEGIRO
+  // exporteert soms nieuwste-eerst, soms oudste-eerst).
+  const toISO = d => { const p = (d || '').split('-'); return p.length === 3 ? `${p[2]}-${p[1]}-${p[0]}` : ''; };
+  let laatsteEurSaldo = null, laatsteDatumISO = '';
+  (accountRows || []).forEach(r => {
+    const { amount, currency } = extractAccountSaldo(r);
+    if (currency !== 'EUR') return;
+    const iso = toISO(r['Datum']);
+    if (iso >= laatsteDatumISO) { laatsteDatumISO = iso; laatsteEurSaldo = amount; }
+  });
+  if (laatsteEurSaldo !== null) {
+    posities.push({ 'Product': 'CASH', 'Symbool/ISIN': '', 'Aantal': '', 'Waarde in EUR': numToDutch(laatsteEurSaldo, 2) });
+  }
+  return posities;
+}
+
+// Debughulp: voor een gegeven ISIN/product alle Account.csv-regels teruggeven die NIET als
+// gewone koop/verkoop of transactiekosten herkend worden — dat zijn precies de "mysterieuze"
+// regels (aandelensplitsing, delisting/afboeking, claimemissie, etc.) die een mismatch tussen de
+// afgeleide en de echte positie kunnen verklaren.
+function findUnrecognizedRowsForProduct(accountRows, isin, product) {
+  return (accountRows || [])
+    .filter(r => (isin && r['ISIN'] === isin) || (product && r['Product'] === product))
+    .map(r => ({ datum: r['Datum'] || '', desc: (r['Omschrijving'] || '').trim() }))
+    .filter(r => r.desc && !ACCOUNT_TRADE_RE.test(r.desc) && !/transactiekosten/i.test(r.desc));
+}
+
 // ── UPLOAD ────────────────────────────────────────────────────────
 function triggerUpload(slot) { currentSlot = slot; fileInputEl.click(); }
 fileInputEl.addEventListener('change', () => {
@@ -2818,11 +3103,11 @@ function handleFile(file, slot) {
   r.readAsText(file, 'UTF-8');
 }
 function checkReady() {
-  document.getElementById('startBtn').disabled = !(files.transactions && files.portfolio && files.account);
+  document.getElementById('startBtn').disabled = !files.account;
 }
 
 function loadCachedFiles() {
-  ['transactions', 'portfolio', 'account'].forEach(slot => {
+  ['account'].forEach(slot => {
     const cached = localStorage.getItem('degiro_csv_' + slot);
     const fname = localStorage.getItem('degiro_csv_filename_' + slot);
     if (cached) {
@@ -2837,7 +3122,7 @@ function loadCachedFiles() {
 }
 
 // ── BUILD ─────────────────────────────────────────────────────────
-function buildDashboard() {
+async function buildDashboard() {
   if (hasNewUpload) {
     // Bij een verse CSV-upload mag een oude handmatige inleg-override (van de
     // inmiddels verwijderde "Inleg automatisch berekend"-banner) nooit meer
@@ -2851,26 +3136,28 @@ function buildDashboard() {
   loadManualPrices();
   loadManualGAK();
   loadLiveCache(); // laatst bekende live koersen alvast tonen, voordat verse data binnenkomt
-  data.transactions = parseCSV(files.transactions);
-  data.portfolio    = parseCSV(files.portfolio);
-  data.account      = parseCSV(files.account);
-  data.transactions.forEach(r => {
-    r._aantal  = pn(r['Aantal']);
-    r._koers   = pn(r['Koers']);
-    r._totaal  = pn(r['Totaal EUR']);
-    r._kosten  = pn(r['Transactiekosten en/of kosten van derden EUR']);
-    r._product = (r['Product']||'').trim();
-    r._datum   = r['Datum']||'';
-    r._beurs   = r['Beurs']||'';
-  });
+  data.account = parseCSV(files.account);
+  // Transacties en posities komen niet meer uit los geüploade Portfolio.csv/Transactions.csv,
+  // maar worden afgeleid uit Account.csv (koop/verkoop-regels in de Omschrijving-kolom) — zie
+  // buildTransactionsFromAccount()/buildPortfolioFromTransactions() hierboven. Dat is uitgebreid
+  // gevalideerd tegen zijn eigen echte Portfolio.csv/Transactions.csv voordat dit is omgezet.
+  try {
+    const { transactions } = await buildTransactionsFromAccount(data.account);
+    data.transactions = transactions;
+    data.portfolio = buildPortfolioFromTransactions(transactions, data.account);
+  } catch (e) {
+    console.error('Kon transacties/posities niet afleiden uit Account.csv:', e);
+    data.transactions = [];
+    data.portfolio = [];
+  }
   document.getElementById('uploadScreen').style.display = 'none';
   document.getElementById('dashContent').classList.add('visible');
   document.getElementById('tickerRibbon').style.display = 'flex';
   renderTickerRibbon();
   renderNewsBanner();
   document.getElementById('refreshBtn').style.display = 'flex';
-  document.getElementById('debugBtn').style.display = 'flex';
-  document.getElementById('testTwelveBtn').style.display = 'flex';
+  document.getElementById('topbarUploadBtn').style.display = 'flex';
+  document.getElementById('diagBtn').style.display = 'flex';
   document.getElementById('alphaBtn').style.display = 'flex';
   loadSavedAlphaKey();
   document.getElementById('topbarInfo') && (document.getElementById('topbarInfo').innerHTML = '');
@@ -4923,12 +5210,14 @@ function showPage(name, el) {
   }
 }
 
-async function testTwelveData() {
+async function debugKoersen() {
   const key = twelveKey();
   const finnKey = apiKey();
+  const escAttr = s => String(s || '').replace(/"/g, '&quot;');
   const lines = [
-    `🔑 Twelve Data key: ${key ? key.slice(0,8)+'...' : 'NIET INGEVULD'}`,
-    `🔑 Finnhub key: ${finnKey ? finnKey.slice(0,8)+'...' : 'NIET INGEVULD'}`,
+    '🕐 Laatste laadpoging (deze sessie):',
+    '  Twelve Data: ' + (lastKoersStatus.twelvedata ? lastKoersStatus.twelvedata.text : 'nog niet geprobeerd — open of ververs het dashboard eerst'),
+    '  Finnhub: ' + (lastKoersStatus.finnhub ? lastKoersStatus.finnhub.text : 'nog niet geprobeerd — open of ververs het dashboard eerst'),
     '',
     '📊 Live prices in geheugen:'
   ];
@@ -4947,7 +5236,6 @@ async function testTwelveData() {
 
   lines.push('');
   lines.push('📈 Status per bron:');
-  const totalLive = Object.keys(liveprices).length;
   const fromTwelve = Object.values(liveprices).filter(p => p.source === 'twelvedata').length;
   const fromAlpha = Object.values(liveprices).filter(p => p.source === 'alphavantage').length;
   const fromFinnhub = Object.values(liveprices).filter(p => p.source !== 'twelvedata' && p.source !== 'alphavantage').length;
@@ -4967,57 +5255,52 @@ async function testTwelveData() {
       });
     }
   }
+
+  lines.push('', '🔌 Live verbindingstest (Finnhub):');
+  if (!finnKey) {
+    lines.push('  Geen Finnhub key ingevuld — verbindingstest overgeslagen.');
+  } else {
+    try {
+      const r1 = await fetch(`https://finnhub.io/api/v1/quote?symbol=ASML.AS&token=${finnKey}`);
+      const d1 = await r1.json();
+      lines.push(`  ASML.AS quote: ${JSON.stringify(d1)}`);
+    } catch(e) { lines.push(`  ASML.AS FOUT: ${e.message}`); }
+    try {
+      const r2 = await fetch(`https://finnhub.io/api/v1/quote?symbol=AMZN&token=${finnKey}`);
+      const d2 = await r2.json();
+      lines.push(`  AMZN quote: ${JSON.stringify(d2)}`);
+    } catch(e) { lines.push(`  AMZN FOUT: ${e.message}`); }
+    try {
+      const r3 = await fetch(`https://finnhub.io/api/v1/forex/rates?base=EUR&token=${finnKey}`);
+      const d3 = await r3.json();
+      const usd = d3?.quote?.USD;
+      lines.push(`  EUR/USD rate: ${usd ? (1/usd).toFixed(4) : 'niet gevonden'}`);
+    } catch(e) { lines.push(`  FX FOUT: ${e.message}`); }
+  }
+
   lines.push('');
   lines.push('💡 Tip: Twelve Data limiet is 8 req/min.');
   lines.push('  Dashboard gebruikt 2-3 requests (batch).');
   lines.push('  Wacht 1 minuut na laden voor refresh.');
 
   const modal = document.getElementById('positionModal');
-  document.getElementById('posModalTitle').textContent = '🔍 API Debug';
+  document.getElementById('posModalTitle').textContent = '🔍 Diagnose koersen';
   document.getElementById('posModalISIN').textContent = '';
   document.getElementById('posModalContent').innerHTML = `
+    <div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">API keys</div>
+    <div class="api-key-row" style="margin-bottom:8px">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
+      <input type="text" id="twelveKeyInput" placeholder="Twelve Data API key (primair — betere koersen)" value="${escAttr(key)}" oninput="saveTwelveKey()">
+    </div>
+    <div class="api-key-row" style="margin-bottom:16px">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6a8fd4" stroke-width="2"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
+      <input type="text" id="apiKeyInput" placeholder="Finnhub API key (backup)" value="${escAttr(finnKey)}" oninput="saveApiKey()">
+    </div>
     <div style="background:#080f1a;border-radius:10px;padding:16px;font-family:monospace;font-size:12px;line-height:1.9;white-space:pre-wrap;color:var(--text2);max-height:400px;overflow-y:auto">
       ${lines.join('\n')}
-    </div>`;
-  modal.style.display = 'flex';
-  modal.onclick = e => { if (e.target === modal) modal.style.display = 'none'; };
-}
-
-async function debugFinnhub() {
-  const key = apiKey();
-  if (!key) { alert('Geen API key ingevuld!'); return; }
-
-  const lines = [`🔑 API key: ${key.slice(0,8)}...`, ''];
-
-  // Test 1: quote voor ASML.AS
-  try {
-    const r1 = await fetch(`https://finnhub.io/api/v1/quote?symbol=ASML.AS&token=${key}`);
-    const d1 = await r1.json();
-    lines.push(`ASML.AS quote: ${JSON.stringify(d1)}`);
-  } catch(e) { lines.push(`ASML.AS FOUT: ${e.message}`); }
-
-  // Test 2: quote voor AMZN
-  try {
-    const r2 = await fetch(`https://finnhub.io/api/v1/quote?symbol=AMZN&token=${key}`);
-    const d2 = await r2.json();
-    lines.push(`AMZN quote: ${JSON.stringify(d2)}`);
-  } catch(e) { lines.push(`AMZN FOUT: ${e.message}`); }
-
-  // Test 3: FX rate
-  try {
-    const r3 = await fetch(`https://finnhub.io/api/v1/forex/rates?base=EUR&token=${key}`);
-    const d3 = await r3.json();
-    const usd = d3?.quote?.USD;
-    lines.push(`EUR/USD rate: ${usd ? (1/usd).toFixed(4) : 'niet gevonden'}`);
-  } catch(e) { lines.push(`FX FOUT: ${e.message}`); }
-
-  // Toon resultaat
-  const modal = document.getElementById('positionModal');
-  document.getElementById('posModalTitle').textContent = '🔍 Finnhub API Debug';
-  document.getElementById('posModalISIN').textContent = '';
-  document.getElementById('posModalContent').innerHTML = `
-    <div style="background:#080f1a;border-radius:10px;padding:16px;font-family:monospace;font-size:12px;line-height:1.8;white-space:pre-wrap;color:var(--text2)">
-      ${lines.join('\n')}
+    </div>
+    <div style="margin-top:12px">
+      <button class="refresh-btn" style="justify-content:center" onclick="retestKoersenFromDiagnose()">🔄 Nu opnieuw proberen</button>
     </div>
     <p style="margin-top:12px;font-size:12px;color:#555">
       Als koers = 0 of {} dan is de markt gesloten of is de ticker verkeerd.<br>
@@ -5025,6 +5308,16 @@ async function debugFinnhub() {
     </p>`;
   modal.style.display = 'flex';
   modal.onclick = e => { if (e.target === modal) modal.style.display = 'none'; };
+}
+
+async function retestKoersenFromDiagnose() {
+  if (twelveKey()) {
+    const ok = await loadTwelveDataPrices();
+    if (!ok && apiKey()) await loadLivePrices();
+  } else if (apiKey()) {
+    await loadLivePrices();
+  }
+  debugKoersen();
 }
 
 function debugInleg() {
@@ -5143,7 +5436,7 @@ function tick() {
 function resetToUpload() {
   Object.keys(charts).forEach(k => { try { charts[k].destroy(); } catch(e){} delete charts[k]; });
   
-  ['transactions','portfolio','account'].forEach(s => {
+  ['account'].forEach(s => {
     if (files[s]) {
       document.getElementById('slot-'+s).classList.add('loaded');
       document.getElementById('status-'+s).textContent = '✓ Bestaand bestand';
@@ -5158,7 +5451,7 @@ function resetToUpload() {
     document.getElementById('startBtn').disabled = false;
   } else {
     document.getElementById('cancelUploadBtn').style.display = 'none';
-    document.getElementById('startBtn').disabled = !(files.transactions && files.portfolio && files.account);
+    document.getElementById('startBtn').disabled = !files.account;
   }
 
   document.getElementById('dashContent').classList.remove('visible');
@@ -7518,7 +7811,7 @@ function loadCloudData() {
     .then(cloudData => {
       if (!cloudData) return;
       
-      if (cloudData && cloudData.files && (cloudData.files.portfolio || cloudData.files.transactions)) {
+      if (cloudData && cloudData.files && cloudData.files.account) {
         console.log('✅ Data found!');
         files = cloudData.files;
 
@@ -7617,8 +7910,8 @@ window.addEventListener('load', () => {
     } catch(e) {}
   }
 
-  // Als er lokaal al geüploade CSV bestanden zijn, open direct het dashboard
-  if (files.transactions && files.portfolio && files.account) {
+  // Als er lokaal al een geüpload Account.csv is, open direct het dashboard
+  if (files.account) {
     try {
       buildDashboard();
     } catch(e) { console.error('Auto build error:', e); }
