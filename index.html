@@ -345,6 +345,7 @@ tbody tr[title]:hover { background: var(--bg3); }
 
 /* ── KPI CARDS ── */
 .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 18px; }
+#page-dashboard .kpi-grid { grid-template-columns: repeat(5, 1fr); }
 
 .kpi {
   background: var(--bg2); border: 1px solid var(--border);
@@ -524,6 +525,7 @@ td.num strong { color: var(--text1); font-weight: 600; }
 /* ── TABLET (≤1024px) ── */
 @media(max-width:1024px) {
   .kpi-grid { grid-template-columns: 1fr 1fr; }
+  #page-dashboard .kpi-grid { grid-template-columns: 1fr 1fr; }
   .chart-grid { grid-template-columns: 1fr; }
   :root { --sidebar-w: 200px; }
 }
@@ -544,6 +546,7 @@ td.num strong { color: var(--text1); font-weight: 600; }
   .topbar-breadcrumb .bc-sep { display: none; }
   .content { padding: 16px 12px; }
   .kpi-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+  #page-dashboard .kpi-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
   .kpi { padding: 14px 16px; }
   .kpi-value { font-size: 21px; }
   .chart-grid { grid-template-columns: 1fr; }
@@ -591,6 +594,7 @@ td.num strong { color: var(--text1); font-weight: 600; }
 /* ── SMALL PHONE (≤480px) ── */
 @media(max-width:480px) {
   .kpi-grid { grid-template-columns: 1fr; }
+  #page-dashboard .kpi-grid { grid-template-columns: 1fr; }
   .topbar-time { display: none; }
   .refresh-btn span, .refresh-btn { font-size: 11px; padding: 6px 10px; }
   #refreshBtn, #diagBtn, #topbarUploadBtn { padding: 6px 8px; }
@@ -799,7 +803,15 @@ td.num strong { color: var(--text1); font-weight: 600; }
           </div>
           <div class="kpi-label">Totale Accountwaarde</div>
           <div class="kpi-value" id="kpiTotalValue">—</div>
-          <div class="kpi-footer"><span class="kpi-sub">Aandelen + Cash</span></div>
+          <div class="kpi-footer" id="kpiTotalValueFooter"><span class="kpi-sub">Aandelen + Cash</span></div>
+        </div>
+        <div class="kpi" style="--kpi-color:var(--red);--kpi-bg:#1a0e0e;--kpi-border:#2a1616">
+          <div class="kpi-icon">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2"><polyline points="22 17 13.5 8.5 8.5 13.5 2 7"/><polyline points="16 17 22 17 22 11"/></svg>
+          </div>
+          <div class="kpi-label">Dagresultaat</div>
+          <div class="kpi-value" id="kpiDagresultaat">—</div>
+          <div class="kpi-footer" id="kpiDagresultaatFooter"><span class="kpi-sub">Sinds vorige slotkoers</span></div>
         </div>
         <div class="kpi" style="--kpi-color:var(--green);--kpi-bg:#081a10;--kpi-border:#0f2a1a">
           <div class="kpi-icon">
@@ -2125,7 +2137,8 @@ async function loadTwelveDataPrices() {
   const rows = data.portfolio.filter(r => r['Product'] && !r['Product'].includes('CASH'));
   const isins = rows.map(r => r['Symbool/ISIN']).filter(Boolean).filter(isin => !AUTO_PRICE_EXCLUDE.includes(isin));
 
-  // Build ONE batch symbol string — telt als 1 API credit!
+  // Build ONE batch symbol string (Twelve Data rekent per symbool 1 credit, batchen bespaart
+  // geen credits maar wel round-trips)
   const symbolParts = [];
   const isinToSym = {};
   isins.forEach(isin => {
@@ -2141,14 +2154,15 @@ async function loadTwelveDataPrices() {
     return false;
   }
 
-  // Één request voor alle prijzen
+  // Één request voor alle prijzen — /quote i.p.v. /price, want die geeft (voor dezelfde
+  // creditkosten) ook previous_close mee, nodig voor het dagresultaat.
   let priceData = {};
   try {
-    const url = `https://api.twelvedata.com/price?symbol=${symbolParts.join(',')}&apikey=${key}&dp=2`;
+    const url = `https://api.twelvedata.com/quote?symbol=${symbolParts.join(',')}&apikey=${key}&dp=2`;
     const res = await fetch(url);
     priceData = await res.json();
     // Als er maar 1 symbool is, wrappen
-    if (priceData.price !== undefined) {
+    if (priceData.close !== undefined) {
       priceData = { [symbolParts[0]]: priceData };
     }
   } catch(e) {
@@ -2172,10 +2186,16 @@ async function loadTwelveDataPrices() {
     const sym = isinToSym[isin];
     const entry = priceData[sym] || priceData[m.symbol];
     if (!entry || entry.status === 'error' || entry.code === 429) return;
-    const price = parseFloat(entry.price);
+    const price = parseFloat(entry.close);
     if (!price || isNaN(price) || price <= 0) return;
     const priceEur = price * getRate(m.currency);
-    liveprices[isin] = { price, priceEur, currency: m.currency, ticker: sym, pe: null, ps: null, source: 'twelvedata' };
+    const prevClose = parseFloat(entry.previous_close);
+    const previousClose = (prevClose > 0 && !isNaN(prevClose)) ? prevClose : null;
+    liveprices[isin] = {
+      price, priceEur,
+      previousClose, previousCloseEur: previousClose != null ? previousClose * getRate(m.currency) : null,
+      currency: m.currency, ticker: sym, pe: null, ps: null, source: 'twelvedata'
+    };
     saveLiveCache(isin, liveprices[isin]);
     success++;
   });
@@ -2265,10 +2285,12 @@ async function fetchTicker(isin) {
 }
 
 async function fetchQuote(ticker) {
+  // Finnhub's /quote geeft in dezelfde (al bestaande) aanroep ook de vorige slotkoers (pc) mee —
+  // die gebruiken we voor het dagresultaat, zonder een extra API-aanroep nodig te hebben.
   try {
     const res = await fetch(`https://finnhub.io/api/v1/quote?symbol=${ticker}&token=${apiKey()}`);
     const d = await res.json();
-    if (d && d.c && d.c > 0) return d.c;
+    if (d && d.c && d.c > 0) return { price: d.c, previousClose: (d.pc > 0) ? d.pc : null };
   } catch(e) {}
   return null;
 }
@@ -2520,7 +2542,10 @@ async function fetchAvQuote(symbol, isin) {
     const d = await res.json();
     bumpAvQuota();
     const price = parseFloat(d?.['Global Quote']?.['05. price']);
-    if (price > 0) return price;
+    if (price > 0) {
+      const prevClose = parseFloat(d?.['Global Quote']?.['08. previous close']);
+      return { price, previousClose: (prevClose > 0 && !isNaN(prevClose)) ? prevClose : null };
+    }
     markAvFailed(isin, `geen koers voor symbool ${symbol}`);
   } catch (e) {
     markAvFailed(isin, `verbindingsfout bij GLOBAL_QUOTE (${symbol})`);
@@ -2602,15 +2627,20 @@ async function loadAlphaVantagePricesInner(key, statusEl) {
     }
     const symbol = await resolveAvSymbol(isin);
     if (!symbol) { failedNames.push(nameByIsin[isin] || isin); continue; }
-    const price = await fetchAvQuote(symbol, isin);
-    if (!price) { failedNames.push(nameByIsin[isin] || isin); continue; }
+    const quote = await fetchAvQuote(symbol, isin);
+    if (!quote) { failedNames.push(nameByIsin[isin] || isin); continue; }
+    const { price, previousClose } = quote;
 
     clearAvFailed(isin);
     const m = ISIN_TWELVE_MAP[isin];
     if (!fxCache[m.currency]) fxCache[m.currency] = await fetchFxRate(m.currency);
     const fxRate = fxCache[m.currency] || 1;
 
-    liveprices[isin] = { price, priceEur: price * fxRate, currency: m.currency, ticker: symbol, pe: null, ps: null, source: 'alphavantage' };
+    liveprices[isin] = {
+      price, priceEur: price * fxRate,
+      previousClose, previousCloseEur: previousClose != null ? previousClose * fxRate : null,
+      currency: m.currency, ticker: symbol, pe: null, ps: null, source: 'alphavantage'
+    };
     saveLiveCache(isin, liveprices[isin]);
     success++;
     if (statusEl) statusEl.textContent = `⟳ Alpha Vantage: EU-koersen laden (${success}/${isins.length})…`;
@@ -2665,14 +2695,19 @@ async function loadLivePrices() {
     // Valuta direct uit Portfolio.csv 'Lokale waarde' kolom
     const currency = localCurrency || 'EUR';
 
-    const price = await fetchQuote(ticker);
-    if (!price) return;
+    const quote = await fetchQuote(ticker);
+    if (!quote) return;
+    const { price, previousClose } = quote;
 
     if (!fxCache[currency]) fxCache[currency] = await fetchFxRate(currency);
     const fxRate = fxCache[currency] || 1;
 
     const metrics = await fetchMetrics(ticker);
-    liveprices[isin] = { price, priceEur: price * fxRate, currency, ticker, pe: metrics.pe, ps: metrics.ps, source: 'finnhub' };
+    liveprices[isin] = {
+      price, priceEur: price * fxRate,
+      previousClose, previousCloseEur: previousClose != null ? previousClose * fxRate : null,
+      currency, ticker, pe: metrics.pe, ps: metrics.ps, source: 'finnhub'
+    };
     saveLiveCache(isin, liveprices[isin]);
     // Update status progressively
     reportKoersStatus('finnhub', `⟳ ${Object.keys(liveprices).length}/${rows.length} geladen…`, '');
@@ -3435,6 +3470,36 @@ async function loadPosPriceHistory(isin, period, btnEl) {
 }
 
 // ── DASHBOARD ─────────────────────────────────────────────────────
+// Dagresultaat: verandering t.o.v. de vorige slotkoers, per positie opgeteld. Gebruikt
+// previousCloseEur die de live-koers-functies (Twelve Data/Finnhub/Alpha Vantage) al meeleveren
+// in dezelfde aanroep als de huidige koers — dus geen extra API-verbruik.
+// Posities zonder live koers (alleen CSV-slotkoers) of met een handmatige koers-override kunnen
+// niet worden meegeteld (we weten dan hun vorige-slotkoers niet zeker) — die tellen we apart,
+// zodat het dagresultaat nooit een verkeerde suggestie van volledigheid geeft.
+function computeDagresultaat() {
+  let bedrag = 0;          // som van (koers vandaag - vorige slotkoers) * aantal, in EUR
+  let vorigeWaardeEUR = 0; // som van (vorige slotkoers * aantal), in EUR — voor het %-getal
+  let meegeteld = 0, nietMeegeteld = 0;
+
+  (data.portfolio || []).forEach(r => {
+    if ((r['Product']||'').includes('CASH') || !r['Product']) return;
+    const isin = r['Symbool/ISIN'] || '';
+    const aantal = pn(r['Aantal']);
+    const lp = liveprices[isin];
+    const heeftHandmatigeOverride = !!manualPrices[isin];
+    if (heeftHandmatigeOverride || !lp || lp.previousCloseEur == null || !lp.priceEur || lp.stale) {
+      nietMeegeteld++;
+      return;
+    }
+    bedrag += (lp.priceEur - lp.previousCloseEur) * aantal;
+    vorigeWaardeEUR += lp.previousCloseEur * aantal;
+    meegeteld++;
+  });
+
+  const percent = vorigeWaardeEUR > 0 ? (bedrag / vorigeWaardeEUR * 100) : 0;
+  return { bedrag, percent, meegeteld, nietMeegeteld, volledig: meegeteld > 0 && nietMeegeteld === 0 };
+}
+
 function renderDashboard() {
   // Inleg — netto: stortingen minus opnames (zelfde brede herkenning als de Rendement & Groei-pagina)
   let totalInleg = 0;
@@ -3490,6 +3555,25 @@ function renderDashboard() {
   document.getElementById('kpiTotalValue').textContent = eur(totalAccount);
   document.getElementById('kpiCash').textContent = eur(cashEUR);
   document.getElementById('kpiInleg').textContent = eur(totalInleg);
+
+  const dag = computeDagresultaat();
+  const dagValueEl = document.getElementById('kpiDagresultaat');
+  const dagFooterEl = document.getElementById('kpiDagresultaatFooter');
+  if (dag.meegeteld > 0) {
+    const dagPos = dag.bedrag >= 0;
+    const onvolledigTitle = !dag.volledig
+      ? `title="Excl. ${dag.nietMeegeteld} positie(s) zonder live koers of met handmatige koers vandaag"`
+      : '';
+    dagValueEl.textContent = `${dagPos?'+':'-'}${eur(Math.abs(dag.bedrag))}`;
+    dagValueEl.style.color = dagPos ? 'var(--green)' : 'var(--red)';
+    dagFooterEl.innerHTML =
+      `<span class="pill ${dagPos?'pos':'neg'}" ${onvolledigTitle}>${dagPos?'▲':'▼'} ${Math.abs(dag.percent).toFixed(2)}%</span>` +
+      `<span class="kpi-sub" style="margin-left:6px">vandaag${!dag.volledig ? ' *' : ''}</span>`;
+  } else {
+    dagValueEl.textContent = '—';
+    dagValueEl.style.color = '';
+    dagFooterEl.innerHTML = `<span class="kpi-sub">Geen live koersen beschikbaar</span>`;
+  }
 
   const pnlEl = document.getElementById('kpiPnL');
   pnlEl.textContent = eur(Math.abs(pnl));
