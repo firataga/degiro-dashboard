@@ -3646,8 +3646,13 @@ function renderDashboard() {
         const isin = r['ISIN'] || '';
         let amount = 0;
         const keys = Object.keys(r);
+        // LET OP: check op index (i+1 < keys.length), niet op de key-NAAM zelf —
+        // de kolom direct na de valutacode kan zelf de lege kolomkop '' hebben
+        // (zie ook extractAccountBedrag hierboven), en '' is falsy in JS. Een
+        // check als `keys[i+1]` sloeg daardoor de Mutatie-kolom over en pakte
+        // per ongeluk de Saldo-kolom (het lopende rekeningsaldo) als "dividend".
         for (let i = 0; i < keys.length; i++) {
-          if (r[keys[i]] === 'EUR' && keys[i+1]) {
+          if (r[keys[i]] === 'EUR' && i + 1 < keys.length) {
             amount = pn(r[keys[i+1]]);
             if (amount !== 0) break;
           }
