@@ -2077,6 +2077,19 @@ const ISIN_TWELVE_MAP = {
 // Gebruiker vult de koers voor deze positie(s) handmatig in via het potloodje in de tabel.
 const AUTO_PRICE_EXCLUDE = ['IE00B5BMR087']; // iShares Core S&P 500 UCITS ETF
 
+// Lokale valuta van een positie, betrouwbaar via de vaste ISIN-tabel.
+// LET OP: voorheen werd dit uit r['Lokale waarde'] gelezen — een kolom die alleen
+// bestond toen er nog een los Portfolio.csv werd geüpload. Sinds de overstap naar
+// alleen Account.csv (waaruit de portefeuille zelf wordt afgeleid) bestaat dat veld
+// niet meer op de rijen, dus viel dit altijd stilzwijgend terug op 'EUR' — met als
+// gevolg dat elke USD-positie die via Finnhub binnenkwam (dus niet via Twelve Data of
+// Alpha Vantage, die de valuta wél correct uit deze tabel halen) met een dollarbedrag
+// werd behandeld alsof het euro's waren: ~15% te hoge waarde per USD-positie, en dus
+// een veel te hoge Totale Accountwaarde. Gefixt op 2026-09-16.
+function localCurrencyFor(isin) {
+  return (ISIN_TWELVE_MAP[isin] && ISIN_TWELVE_MAP[isin].currency) || 'EUR';
+}
+
 async function fetchTwelveDataBatch(isins) {
   const key = twelveKey();
   if (!key) return {};
@@ -2690,9 +2703,8 @@ async function loadLivePrices() {
     const isin = r['Symbool/ISIN'];
     if (!isin || !tickerMap[isin]) return;
     const ticker = tickerMap[isin];
-    const localCurrency = (r['Lokale waarde'] || 'EUR').trim();
+    const localCurrency = localCurrencyFor(isin);
 
-    // Valuta direct uit Portfolio.csv 'Lokale waarde' kolom
     const currency = localCurrency || 'EUR';
 
     const quote = await fetchQuote(ticker);
@@ -3668,7 +3680,7 @@ function renderDashboard() {
     const g = getGAK(gak, name, isin);
     const gakP = g.aantal > 0 ? g.totaalBetaald/g.aantal : 0;
 
-    const localCurrency = (r['Lokale waarde'] || 'EUR').trim();
+    const localCurrency = localCurrencyFor(isin);
     const localSlotkoers = pn(r['Slotkoers']);
     const lokaleWaardeCSV = pn(r['']);
 
@@ -3828,7 +3840,7 @@ function renderDashboard() {
     const g = getGAK(gak, name, isin);
     const gakP = g.aantal > 0 ? g.totaalBetaald/g.aantal : 0;
 
-    const localCurrency2 = (r['Lokale waarde'] || 'EUR').trim();
+    const localCurrency2 = localCurrencyFor(isin);
     const localSlotkoers2 = pn(r['Slotkoers']);
     const lokaleWaardeCSV2 = pn(r['']);
 
@@ -7542,7 +7554,7 @@ function renderRisico() {
     if (w <= 0) w = pn(r['Waarde in EUR']);
     if (w <= 0) continue;
 
-    var currency = (r['Lokale waarde'] || 'EUR').trim();
+    var currency = localCurrencyFor(isin);
     var pe = (liveprices[isin] && liveprices[isin].pe) ? liveprices[isin].pe : null;
     var name = r['Product'].trim();
     var sector = getSector(name);
