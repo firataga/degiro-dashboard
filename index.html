@@ -2913,51 +2913,6 @@ function extractAccountSaldo(r) {
   return { amount: 0, currency: '' };
 }
 
-// Netto ingelegd (stortingen minus opnames) — ÉÉN gedeelde berekening voor zowel het
-// Dashboard ("Netto Ingelegd") als de Rendement & Groei-pagina ("Netto Ingelegd Saldo").
-// LET OP: dit bestond eerder als TWEE los van elkaar onderhouden implementaties — het
-// Dashboard telde de stortingen/opnames plat bij elkaar op, terwijl de Groei-pagina
-// per kalenderjaar bucket, zodat een handmatige jaar-correctie (manualInlegByYear, in te
-// stellen via de per-jaar-tabel op de Groei-pagina) daar wél werd toegepast maar op het
-// Dashboard genegeerd werd. Resultaat: twee verschillende "Netto Ingelegd"-bedragen op
-// hetzelfde moment. Nu bouwen beide plekken de jaartotalen via déze functie, zodat een
-// jaar-correctie altijd overal even goed doorwerkt. De losse globale manualInleg-override
-// (het handmatige totaalbedrag, in te stellen onderaan het Dashboard) blijft daarbovenop
-// het allerlaatste woord houden, zoals voorheen.
-function computeNettoIngelegd() {
-  const depositsByYear = {};
-  const withdrawalsByYear = {};
-  (data.account || []).forEach(r => {
-    const desc = (r['Omschrijving'] || '').toLowerCase();
-    if (desc.includes('reservation') || desc.includes('processed') ||
-        desc.includes('overboeking van uw geldrekening') || desc.includes('overboeking naar uw geldrekening')) return;
-    const { amount, currency } = extractAccountBedrag(r);
-    if (currency !== 'EUR') return; // niet-EUR stortingen/opnames (nog) niet meetellen — vereist FX-omrekening
-    const datumParts = (r['Datum'] || '').split('-');
-    const y = datumParts.length === 3 ? parseInt(datumParts[2], 10) : NaN;
-    // Let op volgorde: 'terugstorting' bevat de substring 'storting', dus eerst op
-    // opname-achtige termen checken, anders wordt een opname als storting gezien.
-    if (desc.includes('terugstorting') || desc.includes('withdrawal') || desc.includes('opname')) {
-      if (amount < 0 && !isNaN(y)) withdrawalsByYear[y] = (withdrawalsByYear[y] || 0) + Math.abs(amount);
-    } else if (desc.includes('ideal') || desc.includes('storting') || desc.includes('deposit')) {
-      if (amount > 0 && !isNaN(y)) depositsByYear[y] = (depositsByYear[y] || 0) + amount;
-    }
-  });
-  const years = new Set([
-    ...Object.keys(depositsByYear).map(Number),
-    ...Object.keys(withdrawalsByYear).map(Number),
-    ...Object.keys(manualInlegByYear).map(Number),
-  ]);
-  let totaal = 0;
-  years.forEach(y => {
-    totaal += (manualInlegByYear[y] !== undefined)
-      ? manualInlegByYear[y]
-      : (depositsByYear[y] || 0) - (withdrawalsByYear[y] || 0);
-  });
-  if (manualInleg !== null) totaal = manualInleg;
-  return { totaal, depositsByYear, withdrawalsByYear };
-}
-
 // Stap 1 (synchroon, geen netwerk nodig — dus goed unit-testbaar): parse de ruwe koop/verkoop-
 // regels + de daaraan gekoppelde transactiekosten-regel uit Account.csv. Bedragen blijven in hun
 // oorspronkelijke valuta; de EUR-omrekening gebeurt pas in buildTransactionsFromAccount().
@@ -3558,10 +3513,29 @@ function computeDagresultaat() {
 }
 
 function renderDashboard() {
-  // Inleg — netto: stortingen minus opnames, inclusief handmatige jaar-correcties.
-  // Gedeeld met de Rendement & Groei-pagina via computeNettoIngelegd() zodat beide
-  // pagina's altijd hetzelfde bedrag tonen (zie toelichting bij die functie).
-  let totalInleg = computeNettoIngelegd().totaal;
+  // Inleg — netto: stortingen minus opnames (zelfde brede herkenning als de Rendement & Groei-pagina)
+  let totalInleg = 0;
+  (data.account||[]).forEach(r => {
+    const desc = (r['Omschrijving']||'').toLowerCase();
+    // 'Reservation iDEAL' en 'Processed Flatex Withdrawal' zijn interne reserverings-/
+    // afhandelingsregels die bij de echte iDEAL Deposit / flatex terugstorting horen
+    // (netto 0) — en 'Overboeking van/naar uw geldrekening' + de bijbehorende 'Degiro
+    // Cash Sweep Transfer' zijn flatexDEGIRO's interne verschuiving tussen de DEGIRO-
+    // cashrekening en de gekoppelde flatex-bankrekening. Geen van beide is een echte
+    // externe storting/opname — meetellen zou dubbel- en verkeerd tellen.
+    if (desc.includes('reservation') || desc.includes('processed') ||
+        desc.includes('overboeking van uw geldrekening') || desc.includes('overboeking naar uw geldrekening')) return;
+    const { amount, currency } = extractAccountBedrag(r);
+    if (currency !== 'EUR') return; // niet-EUR stortingen/opnames (nog) niet meetellen — vereist FX-omrekening
+    // Let op volgorde: 'terugstorting' bevat de substring 'storting', dus eerst op
+    // opname-achtige termen checken, anders wordt een opname als storting gezien.
+    if (desc.includes('terugstorting') || desc.includes('withdrawal') || desc.includes('opname')) {
+      if (amount < 0) totalInleg -= Math.abs(amount);
+    } else if (desc.includes('ideal') || desc.includes('storting') || desc.includes('deposit')) {
+      if (amount > 0) totalInleg += amount;
+    }
+  });
+  if (manualInleg !== null) totalInleg = manualInleg;
   document.getElementById('inlegInput').value = Math.round(totalInleg);
   const btnResetInleg = document.getElementById('btnResetInleg');
   if (btnResetInleg) btnResetInleg.style.display = (manualInleg !== null) ? 'inline-block' : 'none';
@@ -4482,11 +4456,21 @@ async function renderGroei() {
     });
   });
 
-  // Zelfde berekening als het Dashboard (computeNettoIngelegd(), incl. handmatige
-  // jaar-overrides) — voorheen had deze pagina hier haar eigen, net iets andere
-  // logica, waardoor "Netto Ingelegd" op het Dashboard en "Netto Ingelegd Saldo"
-  // hier uit elkaar konden lopen zodra een jaar-correctie was ingesteld.
-  let totalInleg = computeNettoIngelegd().totaal;
+  let totalInleg = 0;
+  // Bereken totalInleg rekening houdend met handmatige jaar-overrides
+  if (Object.keys(manualInlegByYear).length > 0 && minYear <= maxYear) {
+    for (let y = minYear; y <= maxYear; y++) {
+      if (manualInlegByYear[y] !== undefined) {
+        totalInleg += manualInlegByYear[y];
+      } else {
+        totalInleg += (depositsByYear[y] || 0) - (withdrawalsByYear[y] || 0);
+      }
+    }
+  } else {
+    Object.keys(depositsByYear).forEach(y => totalInleg += depositsByYear[y]);
+    Object.keys(withdrawalsByYear).forEach(y => totalInleg -= withdrawalsByYear[y]);
+  }
+  if (manualInleg !== null) totalInleg = manualInleg;
 
   const totalWinst = totalValue - totalInleg;
   const totalWinstPct = totalInleg > 0 ? (totalWinst / totalInleg * 100) : 0;
