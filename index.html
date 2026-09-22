@@ -839,8 +839,6 @@ td.num strong { color: var(--text1); font-weight: 600; }
         </div>
       </div>
 
-      <input type="hidden" id="inlegInput">
-
       <div class="card">
         <div class="card-header">
           <div class="card-header-left">
@@ -1886,7 +1884,6 @@ let files = { transactions: null, portfolio: null, account: null };
 let hasNewUpload = false;
 let data = { transactions: [], portfolio: [], account: [] };
 let charts = {};
-let manualInleg = null;
 let liveprices = {}; // isin -> { price, currency, ticker }
 let isinToTicker = {}; // cache
 // Laatste resultaat per koersbron, zodat "🔍 Diagnose koersen" altijd kan tonen wat er bij het
@@ -3170,16 +3167,6 @@ function loadCachedFiles() {
 
 // ── BUILD ─────────────────────────────────────────────────────────
 async function buildDashboard() {
-  if (hasNewUpload) {
-    // Bij een verse CSV-upload mag een oude handmatige inleg-override (van de
-    // inmiddels verwijderde "Inleg automatisch berekend"-banner) nooit meer
-    // stilzwijgend de nieuw berekende Netto Ingelegd blijven overschrijven —
-    // anders lijkt het net of een nieuwe upload niks doet.
-    manualInleg = null;
-    try { localStorage.removeItem('degiro_inleg'); } catch(e) {}
-  } else {
-    loadSavedInleg();
-  }
   loadManualPrices();
   loadManualGAK();
   loadLiveCache(); // laatst bekende live koersen alvast tonen, voordat verse data binnenkomt
@@ -3535,10 +3522,6 @@ function renderDashboard() {
       if (amount > 0) totalInleg += amount;
     }
   });
-  if (manualInleg !== null) totalInleg = manualInleg;
-  document.getElementById('inlegInput').value = Math.round(totalInleg);
-  const btnResetInleg = document.getElementById('btnResetInleg');
-  if (btnResetInleg) btnResetInleg.style.display = (manualInleg !== null) ? 'inline-block' : 'none';
 
   // Portfolio waarde — gebruik live of handmatige koers indien beschikbaar
   let stockEUR = 0, cashEUR = 0;
@@ -3995,14 +3978,6 @@ function cancelPriceEdit(isin) {
   document.getElementById('pe-' + isin).style.display = 'none';
   document.getElementById('peb-' + isin).style.display = '';
 }
-function startInlegEdit(year) {
-  const disp = document.getElementById('inleg-disp-' + year);
-  const edit = document.getElementById('inleg-edit-' + year);
-  if (disp) disp.style.display = 'none';
-  if (edit) { edit.style.display = 'flex'; }
-  const inp = document.getElementById('inleg-input-' + year);
-  if (inp) { inp.focus(); inp.select(); }
-}
 function applyManualPrice(isin, currency, aantal) {
   const v = parseFloat(document.getElementById('pi-' + isin).value);
   if (isNaN(v) || v <= 0) return;
@@ -4093,37 +4068,6 @@ function getGAK(gak, name, isin) {
   if (isin && gak.byISIN[isin]) return gak.byISIN[isin];
   if (gak.byName[name]) return gak.byName[name];
   return { aantal:0, totaalBetaald:0 };
-}
-
-function loadSavedInleg() {
-  const saved = localStorage.getItem("degiro_inleg");
-  if (saved) { manualInleg = parseFloat(saved); }
-}
-
-function resetManualInleg() {
-  manualInleg = null;
-  localStorage.removeItem("degiro_inleg");
-  saveDataToCloud(true);
-  renderDashboard();
-  renderGroei();
-}
-
-function updateInleg() {
-  const v = parseFloat(document.getElementById('inlegInput').value);
-  if (!isNaN(v) && v > 0) {
-    manualInleg = v;
-    localStorage.setItem("degiro_inleg", v);
-    saveDataToCloud(true);
-    const s = document.getElementById("inlegSaved");
-    if (s) {
-      s.textContent = "✓ Opgeslagen";
-      setTimeout(() => { s.textContent = ""; }, 2500);
-    }
-    renderDashboard();
-    renderGroei();
-    const ap = document.getElementById('page-analyse');
-    if (ap && ap.style.display !== 'none') renderAnalyse();
-  }
 }
 
 function updateScenario() {
@@ -4249,35 +4193,19 @@ function getBestWaardeEUR(r) {
 }
 
 // ── RENDEMENT & GROEI ──────────────────────────────────────────────
-let manualInlegByYear = {}; // year -> manual net deposit override
+// LET OP: handmatige jaar-correctie voor Netto Inleg (voorheen manualInlegByYear)
+// is op 2026-09-22 bewust volledig verwijderd — de automatische berekening uit
+// Account.csv (stortingen minus opnames) is betrouwbaar gebleken, en de
+// mogelijkheid om 'm te overschrijven zorgde er meermaals voor dat een oude,
+// achterhaalde correctie stilzwijgend het juiste bedrag verving.
 let manualYearEndValues = {}; // year -> manual portfolio value at end of year
 
 (function loadGroeiOverrides() {
   try {
-    const s = localStorage.getItem('degiro_manual_inleg_year');
-    if (s) manualInlegByYear = JSON.parse(s);
     const s2 = localStorage.getItem('degiro_manual_yearend');
     if (s2) manualYearEndValues = JSON.parse(s2);
   } catch(e) {}
 })();
-
-function saveManualInlegYear(year, value) {
-  if (value === null || value === undefined || value === '') {
-    delete manualInlegByYear[year];
-  } else {
-    manualInlegByYear[year] = parseFloat(value);
-  }
-  localStorage.setItem('degiro_manual_inleg_year', JSON.stringify(manualInlegByYear));
-  saveDataToCloud(true);
-  renderGroei();
-}
-
-function resetManualInlegYear(year) {
-  delete manualInlegByYear[year];
-  localStorage.setItem('degiro_manual_inleg_year', JSON.stringify(manualInlegByYear));
-  saveDataToCloud(true);
-  renderGroei();
-}
 
 function saveManualYearEnd(year, value) {
   if (value === null || value === undefined || value === '') {
@@ -4456,21 +4384,12 @@ async function renderGroei() {
     });
   });
 
+  // Netto ingelegd: altijd rechtstreeks uit Account.csv (stortingen minus opnames),
+  // zelfde als het Dashboard — geen handmatige override meer mogelijk (zie toelichting
+  // hierboven bij "RENDEMENT & GROEI").
   let totalInleg = 0;
-  // Bereken totalInleg rekening houdend met handmatige jaar-overrides
-  if (Object.keys(manualInlegByYear).length > 0 && minYear <= maxYear) {
-    for (let y = minYear; y <= maxYear; y++) {
-      if (manualInlegByYear[y] !== undefined) {
-        totalInleg += manualInlegByYear[y];
-      } else {
-        totalInleg += (depositsByYear[y] || 0) - (withdrawalsByYear[y] || 0);
-      }
-    }
-  } else {
-    Object.keys(depositsByYear).forEach(y => totalInleg += depositsByYear[y]);
-    Object.keys(withdrawalsByYear).forEach(y => totalInleg -= withdrawalsByYear[y]);
-  }
-  if (manualInleg !== null) totalInleg = manualInleg;
+  Object.keys(depositsByYear).forEach(y => totalInleg += depositsByYear[y]);
+  Object.keys(withdrawalsByYear).forEach(y => totalInleg -= withdrawalsByYear[y]);
 
   const totalWinst = totalValue - totalInleg;
   const totalWinstPct = totalInleg > 0 ? (totalWinst / totalInleg * 100) : 0;
@@ -4497,13 +4416,6 @@ async function renderGroei() {
       if (amount > 0) mwrrCashflows.push({ date: iso, amount: -amount });
     }
   });
-  // Fallback: geen losse stortingsregels in de CSV, maar wel handmatige jaar-inleg ingevuld
-  if (mwrrCashflows.length === 0 && Object.keys(manualInlegByYear).length > 0) {
-    Object.keys(manualInlegByYear).forEach(y => {
-      const amt = manualInlegByYear[y];
-      if (amt) mwrrCashflows.push({ date: `${y}-07-01`, amount: -amt });
-    });
-  }
   let mwrr = null;
   if (mwrrCashflows.length > 0 && totalValue > 0) {
     mwrrCashflows.push({ date: new Date().toISOString().slice(0,10), amount: totalValue });
@@ -4549,9 +4461,7 @@ async function renderGroei() {
       const dep = depositsByYear[y] || 0;
       const wd = withdrawalsByYear[y] || 0;
       const netDep = dep - wd;
-      const isOverridden = manualInlegByYear[y] !== undefined;
-      const displayNetDep = isOverridden ? manualInlegByYear[y] : netDep;
-      cumInleg += displayNetDep;
+      cumInleg += netDep;
 
       const hasManualYE = manualYearEndValues[y] !== undefined;
       // Default year end value for current year is totalValue if current year
@@ -4567,14 +4477,14 @@ async function renderGroei() {
       if (hasManualYE || (y === nowYear && yeVal > 0)) {
         // Formule voor totaal jaarrendement inclusief ongerealiseerde koerswinst:
         // Winst = Eindejaarswaarde - Beginjaarswaarde - Netto inleg van dat jaar
-        const startVal = prevYearEndVal > 0 ? prevYearEndVal : (cumInleg - displayNetDep);
-        resultYear = yeVal - startVal - displayNetDep;
-        const baseCapital = startVal + displayNetDep;
+        const startVal = prevYearEndVal > 0 ? prevYearEndVal : (cumInleg - netDep);
+        resultYear = yeVal - startVal - netDep;
+        const baseCapital = startVal + netDep;
         retPctYear = baseCapital > 0 ? (resultYear / baseCapital * 100) : (cumInleg > 0 ? (resultYear / cumInleg * 100) : 0);
         prevYearEndVal = yeVal;
       } else {
         retPctYear = cumInleg > 0 ? (Math.abs(resultYear) / cumInleg * 100) * (resultYear >= 0 ? 1 : -1) : 0;
-        prevYearEndVal = (prevYearEndVal > 0 ? prevYearEndVal : (cumInleg - displayNetDep)) + displayNetDep + resultYear;
+        prevYearEndVal = (prevYearEndVal > 0 ? prevYearEndVal : (cumInleg - netDep)) + netDep + resultYear;
       }
 
       const isRetPos = resultYear >= 0;
@@ -4584,20 +4494,7 @@ async function renderGroei() {
         <td><strong>${y}</strong></td>
         <td class="num">${dep > 0 ? eur(dep) : '—'}</td>
         <td class="num">${wd > 0 ? eur(wd) : '—'}</td>
-        <td class="num price-cell" id="inleg-cell-${y}">
-          <span class="price-display" id="inleg-disp-${y}" style="display:flex;align-items:center;justify-content:flex-end;gap:6px">
-            <strong style="${isOverridden ? 'color:var(--yellow)' : ''}">${eur(displayNetDep)}</strong>
-            ${isOverridden ? '<span class="live-chip manual" style="font-size:9px">✎ HANDMATIG</span>' : ''}
-            <button class="price-edit-btn" onclick="event.stopPropagation();startInlegEdit(${y})" title="Netto inleg aanpassen" style="margin-left:4px">✎</button>
-          </span>
-          <span id="inleg-edit-${y}" style="display:none;align-items:center;gap:6px;justify-content:flex-end">
-            <span style="font-size:11px;color:var(--text3)">€</span>
-            <input id="inleg-input-${y}" type="number" step="100" value="${displayNetDep.toFixed(0)}" style="width:100px;background:var(--bg2);border:1px solid var(--border2);border-radius:6px;padding:5px 8px;font-size:13px;color:var(--text1)" onclick="event.stopPropagation()">
-            <button class="price-save-btn" onclick="event.stopPropagation();saveManualInlegYear(${y}, document.getElementById('inleg-input-${y}').value)">✓</button>
-            <button class="price-cancel-btn" onclick="event.stopPropagation();document.getElementById('inleg-disp-${y}').style.display='';document.getElementById('inleg-edit-${y}').style.display='none'">✕</button>
-            ${isOverridden ? `<button class="price-cancel-btn" style="background:var(--red-bg);color:var(--red);border:1px solid #4a1a1a" onclick="event.stopPropagation();resetManualInlegYear(${y})" title="Wis handmatige waarde">🗑</button>` : ''}
-          </span>
-        </td>
+        <td class="num"><strong>${eur(netDep)}</strong></td>
         <td class="num">${eur(cumInleg)}</td>
         <td class="num price-cell" id="yearend-cell-${y}">
           <span class="price-display" id="yearend-disp-${y}" style="display:flex;align-items:center;justify-content:flex-end;gap:6px">
@@ -4677,18 +4574,9 @@ async function renderBenchmarkComparison() {
     if (currency === 'EUR' && n > 0) cashflows.push({ date: toISO(r['Datum']||''), amount: n });
   });
 
-  // Fallback: geen losse stortingsregels gevonden in de CSV → gebruik de
-  // (evt. handmatig ingevulde) jaarlijkse netto inleg van de Rendement & Groei-pagina
-  if (cashflows.length === 0 && typeof manualInlegByYear === 'object' && Object.keys(manualInlegByYear).length > 0) {
-    Object.keys(manualInlegByYear).forEach(y => {
-      const amt = manualInlegByYear[y];
-      if (amt > 0) cashflows.push({ date: `${y}-07-01`, amount: amt });
-    });
-  }
-
   if (cashflows.length === 0) {
     statusEl.style.display='block'; contentEl.style.display='none';
-    statusEl.textContent = 'Geen stortingen gevonden — vul desnoods eerst de jaarlijkse inleg handmatig in op de pagina Rendement & Groei.';
+    statusEl.textContent = 'Geen stortingen gevonden in Account.csv.';
     return;
   }
   cashflows.sort((a,b) => a.date.localeCompare(b.date));
@@ -7921,14 +7809,6 @@ function loadCloudData() {
           manualPrices = cloudData.manualPrices;
           localStorage.setItem('degiro_manual_prices', JSON.stringify(manualPrices));
         }
-        if (cloudData.manualInleg !== undefined && cloudData.manualInleg !== null) {
-          manualInleg = cloudData.manualInleg;
-          localStorage.setItem('degiro_inleg', String(manualInleg));
-        }
-        if (cloudData.manualInlegByYear && typeof cloudData.manualInlegByYear === 'object') {
-          manualInlegByYear = cloudData.manualInlegByYear;
-          localStorage.setItem('degiro_manual_inleg_year', JSON.stringify(manualInlegByYear));
-        }
         if (cloudData.manualYearEndValues && typeof cloudData.manualYearEndValues === 'object') {
           manualYearEndValues = cloudData.manualYearEndValues;
           localStorage.setItem('degiro_manual_yearend', JSON.stringify(manualYearEndValues));
@@ -7965,8 +7845,6 @@ function saveDataToCloud(silent) {
     files: files,
     timestamp: Date.now(),
     manualPrices: manualPrices || {},
-    manualInleg: manualInleg,
-    manualInlegByYear: manualInlegByYear || {},
     manualYearEndValues: manualYearEndValues || {},
     manualGAK: manualGAK || {}
   };
