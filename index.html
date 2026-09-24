@@ -2950,9 +2950,10 @@ function parseAccountTrades(accountRows) {
         // negatief = aandelen erbij, positief = aandelen eraf.
         const richting = mutatieBedrag < 0 ? 1 : -1;
         const key = isin + '|' + datum;
-        if (!splitAdjByKey[key]) splitAdjByKey[key] = { isin, product, datum, aantal: 0 };
+        if (!splitAdjByKey[key]) splitAdjByKey[key] = { isin, product, datum, aantal: 0, tijd: r['Tijd'] || '' };
         splitAdjByKey[key].aantal += richting * aantal;
         splitAdjByKey[key].product = product;
+        splitAdjByKey[key].tijd = r['Tijd'] || splitAdjByKey[key].tijd;
       } else {
         skipped.push({ desc, datum, isin, product });
       }
@@ -2985,6 +2986,7 @@ function parseAccountTrades(accountRows) {
       _isin: isin,
       _product: product,
       _datum: r['Datum'] || '',
+      _tijd: r['Tijd'] || '',
       _aantal: richting * aantal,
       _koers: koers,
       _mutatieBedrag: mutatieBedrag,
@@ -3001,18 +3003,26 @@ function parseAccountTrades(accountRows) {
   Object.values(splitAdjByKey).forEach(s => {
     if (!s.aantal) return; // netto nul (bv. exact tegengestelde lots) — geen wijziging nodig
     trades.push({
-      _isin: s.isin, _product: s.product, _datum: s.datum,
+      _isin: s.isin, _product: s.product, _datum: s.datum, _tijd: s.tijd || '',
       _aantal: s.aantal, _koers: 0,
       _mutatieBedrag: 0, _mutatieValuta: 'EUR',
       _kostenRaw: 0, _kostenValuta: 'EUR',
     });
   });
 
-  // Op datum sorteren: de split-aanpassingen zijn hierboven achteraan toegevoegd, en Account.csv
-  // zelf staat niet altijd gegarandeerd chronologisch — downstream logica (GAK, "laatst bekende
-  // koers"-fallback) gaat uit van chronologische volgorde.
+  // Op datum + tijd sorteren: de split-aanpassingen zijn hierboven achteraan toegevoegd, en
+  // Account.csv zelf staat niet gegarandeerd chronologisch (DEGIRO exporteert doorgaans nieuwste
+  // eerst) — downstream logica (FIFO-koppeling koop/verkoop, GAK, "laatst bekende koers"-fallback)
+  // gaat uit van echte chronologische volgorde. Sorteren op alléén datum liet transacties op
+  // dezelfde dag in de (omgekeerde) volgorde van het CSV-bestand staan — bij een koop+verkoop op
+  // dezelfde dag kwam de verkoop dan vóór de koop te staan, met een lege koop-wachtrij als gevolg
+  // (zie 2026-09-24: "Cloudflare 12 in bezit" terwijl diezelfde dag alles alweer verkocht was).
   const toISOSort = d => { const p = (d || '').split('-'); return p.length === 3 ? `${p[2]}-${p[1]}-${p[0]}` : d; };
-  trades.sort((a, b) => toISOSort(a._datum).localeCompare(toISOSort(b._datum)));
+  trades.sort((a, b) => {
+    const keyA = toISOSort(a._datum) + ' ' + (a._tijd || '00:00');
+    const keyB = toISOSort(b._datum) + ' ' + (b._tijd || '00:00');
+    return keyA.localeCompare(keyB);
+  });
 
   return { trades, skipped, fxSkipped };
 }
@@ -3043,6 +3053,7 @@ async function buildTransactionsFromAccount(accountRows) {
     const kostenEur = t._kostenRaw ? toEur(t._kostenRaw, t._kostenValuta, t._datum) : 0;
     return {
       'Datum': t._datum,
+      'Tijd': t._tijd || '',
       'Product': t._product,
       'ISIN': t._isin,
       'Aantal': numToDutch(t._aantal),
@@ -3055,6 +3066,7 @@ async function buildTransactionsFromAccount(accountRows) {
       _kosten: kostenEur,
       _product: t._product,
       _datum: t._datum,
+      _tijd: t._tijd || '',
       _beurs: '',
     };
   });
@@ -3588,7 +3600,10 @@ function renderDashboard() {
       const pA = a._datum.split('-'); const pB = b._datum.split('-');
       const isoA = pA.length===3 ? `${pA[2]}-${pA[1]}-${pA[0]}` : a._datum;
       const isoB = pB.length===3 ? `${pB[2]}-${pB[1]}-${pB[0]}` : b._datum;
-      return isoA.localeCompare(isoB);
+      // + tijd: transacties op dezelfde dag moeten in echte volgorde verwerkt worden, anders kan
+      // een verkoop vóór de bijbehorende (nog onbekende) aankoop terechtkomen — zie toelichting bij
+      // trades.sort() in parseAccountTrades().
+      return (isoA + ' ' + (a['Tijd']||'00:00')).localeCompare(isoB + ' ' + (b['Tijd']||'00:00'));
     });
 
     const buyQueues = {};
@@ -4024,7 +4039,7 @@ function calcGAK() {
   // Indexed by ISIN (betrouwbaarder dan naam want Portfolio.csv knipt namen af)
   const gakByISIN = {};
   const gakByName = {};
-  function toISO(r) { const p = r._datum.split('-'); return p.length===3 ? `${p[2]}-${p[1]}-${p[0]}` : r._datum; }
+  function toISO(r) { const p = r._datum.split('-'); const d = p.length===3 ? `${p[2]}-${p[1]}-${p[0]}` : r._datum; return d + ' ' + (r['Tijd']||'00:00'); }
   [...data.transactions].sort((a,b) => toISO(a).localeCompare(toISO(b))).forEach(r => {
     const n = r._product; if (!n) return;
     const isin = r['ISIN'] || '';
@@ -6885,7 +6900,8 @@ function renderCompareChips() {
 // daadwerkelijk in bezit waren (ook van inmiddels verkochte posities).
 function buildQuantityTimeline() {
   const toISO = d => { const p = d.split('-'); return p.length===3 ? `${p[2]}-${p[1]}-${p[0]}` : d; };
-  const sorted = [...data.transactions].filter(r => r['ISIN']).sort((a,b) => toISO(a._datum).localeCompare(toISO(b._datum)));
+  const sorted = [...data.transactions].filter(r => r['ISIN']).sort((a,b) =>
+    (toISO(a._datum) + ' ' + (a['Tijd']||'00:00')).localeCompare(toISO(b._datum) + ' ' + (b['Tijd']||'00:00')));
   const running = {};
   const byIsin = {};
   sorted.forEach(r => {
